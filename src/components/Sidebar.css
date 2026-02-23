@@ -10,6 +10,7 @@
     display: flex;
     flex-direction: column;
     z-index: 40;
+    transition: transform 0.3s ease;
 }
 
 .sidebar-header {
@@ -39,6 +40,20 @@
 .logo-subtitle {
     font-size: 0.75rem;
     color: var(--text-muted);
+}
+
+/* Close button inside sidebar - hidden on desktop */
+.sidebar-close-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+.sidebar-close-btn:hover {
+    color: white;
 }
 
 .sidebar-nav {
@@ -87,6 +102,7 @@
 .user-avatar {
     width: 36px;
     height: 36px;
+    min-width: 36px;
     background-color: var(--warning);
     color: var(--text-primary);
     border-radius: 50%;
@@ -128,4 +144,72 @@
     background: rgba(227, 24, 55, 0.15);
     border-color: rgba(227, 24, 55, 0.3);
     color: #ff6b7a;
+}
+
+/* Mobile hamburger button - hidden on desktop */
+.mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 50;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    transition: all var(--transition);
+}
+
+.mobile-menu-btn:hover {
+    background: var(--primary-hover);
+}
+
+/* Overlay backdrop */
+.sidebar-overlay {
+    display: none;
+}
+
+/* ==============================
+   TABLET: ≤ 1024px
+   ============================== */
+@media (max-width: 1024px) {
+    .sidebar {
+        width: 240px;
+    }
+}
+
+/* ==============================
+   MOBILE: ≤ 768px
+   ============================== */
+@media (max-width: 768px) {
+    .mobile-menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sidebar-close-btn {
+        display: block;
+    }
+
+    .sidebar {
+        width: 280px;
+        transform: translateX(-100%);
+    }
+
+    .sidebar.sidebar-open {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+        z-index: 35;
+    }
 }

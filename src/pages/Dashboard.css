@@ -14,6 +14,7 @@
 .kpi-icon-wrapper {
     width: 3.5rem;
     height: 3.5rem;
+    min-width: 3.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -77,4 +78,86 @@
 
 .text-muted {
     color: var(--text-muted);
+}
+
+/* ==============================
+   RESPONSIVE: TABLET (≤ 1024px)
+   ============================== */
+@media (max-width: 1024px) {
+    .dashboard .kpi-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .card-header {
+        padding: 1rem;
+    }
+
+    .card-title {
+        font-size: 1rem;
+    }
+}
+
+/* ==============================
+   RESPONSIVE: MOBILE (≤ 768px)
+   ============================== */
+@media (max-width: 768px) {
+    .dashboard .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .kpi-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .kpi-icon-wrapper {
+        width: 2.5rem;
+        height: 2.5rem;
+        min-width: 2.5rem;
+        border-radius: 0.5rem;
+    }
+
+    .kpi-icon-wrapper svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .kpi-label {
+        font-size: 0.7rem;
+    }
+
+    .kpi-value {
+        font-size: 1.25rem;
+    }
+
+    .card-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .card-title {
+        font-size: 0.9rem;
+    }
+
+    .empty-state {
+        padding: 2rem 1rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* ==============================
+   RESPONSIVE: SMALL MOBILE (≤ 480px)
+   ============================== */
+@media (max-width: 480px) {
+    .dashboard .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-card {
+        flex-direction: row;
+        align-items: center;
+    }
 }
