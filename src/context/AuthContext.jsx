@@ -1,0 +1,91 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+
+const AuthContext = createContext();
+
+export const useAuth = () => useContext(AuthContext);
+
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(undefined); // undefined = not yet checked
+    const [userProfile, setUserProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+            if (firebaseUser) {
+                // Fetch profile BEFORE updating any state
+                let profile = null;
+                try {
+                    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+                    if (userDoc.exists()) {
+                        profile = userDoc.data();
+                        console.log('[Auth] User profile loaded:', profile.email, 'Role:', profile.role);
+                    } else {
+                        console.warn('[Auth] No user profile found for UID:', firebaseUser.uid);
+                        profile = {
+                            name: '',
+                            role: 'none',
+                            email: firebaseUser.email,
+                        };
+                    }
+                } catch (error) {
+                    console.error('[Auth] Error fetching user profile:', error);
+                    profile = {
+                        name: '',
+                        role: 'none',
+                        email: firebaseUser.email,
+                    };
+                }
+                // Update all state together
+                setUserProfile(profile);
+                setUser(firebaseUser);
+            } else {
+                setUser(null);
+                setUserProfile(null);
+            }
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const login = useCallback(async (email, password) => {
+        return signInWithEmailAndPassword(auth, email, password);
+    }, []);
+
+    const logout = useCallback(async () => {
+        return signOut(auth);
+    }, []);
+
+    const updateProfile = useCallback(async (updates) => {
+        if (!user) throw new Error('Not authenticated');
+        const userRef = doc(db, 'users', user.uid);
+        await setDoc(userRef, updates, { merge: true });
+        // Refresh local profile
+        setUserProfile(prev => ({ ...prev, ...updates }));
+    }, [user]);
+
+    // Whether the user still needs to complete profile setup
+    const needsProfileSetup = userProfile
+        && userProfile.role !== 'audit_unit'
+        && (!userProfile.name || !userProfile.position);
+
+    const value = {
+        user: user === undefined ? null : user,
+        userProfile,
+        userRole: userProfile?.role || null,
+        loading,
+        needsProfileSetup,
+        login,
+        logout,
+        updateProfile,
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
+};

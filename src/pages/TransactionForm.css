@@ -1,0 +1,68 @@
+.transaction-card {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0;
+    overflow: hidden;
+}
+
+.card-icon-header {
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.success-header {
+    background-color: var(--success-bg);
+    color: var(--success);
+}
+
+.warning-header {
+    background-color: var(--warning-bg);
+    color: var(--warning);
+}
+
+.transaction-form {
+    padding: 0 2rem 2rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.btn-submit {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.875rem;
+    font-size: 1rem;
+}
+
+.alert {
+    margin: 0 2rem 1.5rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.alert-success {
+    background-color: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.alert-danger {
+    background-color: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.ml-2 {
+    margin-left: 0.5rem;
+}

@@ -1,0 +1,526 @@
+/* ============================================
+   Print Styles — hidden on screen, shown when printing
+   ============================================ */
+
+/* The print container is hidden on screen */
+.print-container {
+    display: none;
+}
+
+/* Print media — show print container, hide everything else */
+@media print {
+
+    /* Hide app chrome */
+    body>#root>* {
+        display: none !important;
+    }
+
+    body {
+        margin: 0;
+        padding: 0;
+        background: white;
+    }
+
+    /* Show the print container */
+    .print-container {
+        display: block !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: auto;
+        z-index: 99999;
+        background: white;
+        color: #000;
+        font-family: 'Times New Roman', Georgia, serif;
+        font-size: 11pt;
+        line-height: 1.4;
+        padding: 0;
+        margin: 0;
+    }
+
+    @page {
+        size: A4;
+        margin: 12mm 14mm 15mm 14mm;
+    }
+}
+
+/* ============================================
+   Print Document Layout (base)
+   ============================================ */
+.print-document {
+    max-width: 100%;
+    padding: 0;
+}
+
+/* ============================================
+   VOUCHER — Full Redesign
+   ============================================ */
+
+/* Top green banner */
+.voucher-banner {
+    background: #1a4d2e;
+    color: white;
+    text-align: center;
+    padding: 10pt 16pt;
+    margin-bottom: 0;
+}
+
+.voucher-banner h1 {
+    font-size: 15pt;
+    font-weight: bold;
+    letter-spacing: 2pt;
+    text-transform: uppercase;
+    margin: 0;
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+.voucher-banner .banner-sub {
+    font-size: 8.5pt;
+    letter-spacing: 1pt;
+    margin-top: 2pt;
+    opacity: 0.85;
+    text-transform: uppercase;
+}
+
+/* Gold accent bar */
+.voucher-gold-bar {
+    height: 4pt;
+    background: linear-gradient(90deg, #b8860b, #daa520, #ffd700, #daa520, #b8860b);
+}
+
+/* Voucher body container */
+.voucher-body {
+    padding: 14pt 20pt 12pt;
+}
+
+/* Title block */
+.voucher-title-block {
+    text-align: center;
+    margin: 8pt 0 12pt;
+    padding: 8pt 0;
+    border: 2pt solid #1a4d2e;
+    background: #f0f7f2;
+}
+
+.voucher-title-block h2 {
+    font-size: 16pt;
+    font-weight: bold;
+    letter-spacing: 3pt;
+    text-transform: uppercase;
+    color: #1a4d2e;
+    margin: 0;
+    font-family: 'Georgia', 'Times New Roman', serif;
+}
+
+/* Info grid: voucher number, date, from/to */
+.voucher-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1pt solid #999;
+    margin-bottom: 12pt;
+    font-size: 10pt;
+}
+
+.voucher-info-cell {
+    padding: 6pt 10pt;
+    border-bottom: 1pt solid #ccc;
+}
+
+.voucher-info-cell:nth-child(odd) {
+    border-right: 1pt solid #ccc;
+}
+
+.voucher-info-cell:nth-last-child(-n+2) {
+    border-bottom: none;
+}
+
+.voucher-info-cell .info-label {
+    font-size: 7.5pt;
+    text-transform: uppercase;
+    color: #666;
+    letter-spacing: 0.8pt;
+    margin-bottom: 2pt;
+}
+
+.voucher-info-cell .info-value {
+    font-size: 10.5pt;
+    font-weight: bold;
+    color: #111;
+}
+
+/* Items table */
+.voucher-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10pt;
+    font-size: 10pt;
+}
+
+.voucher-table th {
+    background: #1a4d2e;
+    color: white;
+    font-weight: bold;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.6pt;
+    padding: 6pt 8pt;
+    border: 1pt solid #1a4d2e;
+    text-align: center;
+}
+
+.voucher-table th:first-child {
+    width: 28pt;
+}
+
+.voucher-table th.desc-col {
+    text-align: left;
+    width: auto;
+}
+
+.voucher-table td {
+    border: 1pt solid #bbb;
+    padding: 5pt 8pt;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.voucher-table td.desc-col {
+    text-align: left;
+    font-weight: 500;
+}
+
+.voucher-table td.qty-highlight {
+    font-weight: bold;
+    font-size: 12pt;
+    color: #1a4d2e;
+}
+
+/* Empty rows for future items */
+.voucher-table tr.empty-row td {
+    height: 22pt;
+    color: transparent;
+}
+
+.voucher-table tbody tr:nth-child(even) {
+    background-color: #f7faf8;
+}
+
+/* Totals row */
+.voucher-table tfoot td {
+    font-weight: bold;
+    background: #e8f5e9;
+    border-top: 2pt solid #1a4d2e;
+    font-size: 10pt;
+    padding: 6pt 8pt;
+}
+
+/* Notes / Remarks */
+.voucher-remarks {
+    border: 1pt solid #bbb;
+    margin: 10pt 0 14pt;
+    padding: 0;
+}
+
+.voucher-remarks-header {
+    background: #f0f0f0;
+    padding: 4pt 10pt;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.8pt;
+    color: #555;
+    font-weight: bold;
+    border-bottom: 1pt solid #bbb;
+}
+
+.voucher-remarks-body {
+    padding: 8pt 10pt;
+    min-height: 34pt;
+    font-size: 10pt;
+    color: #333;
+    font-style: italic;
+}
+
+/* Signature area */
+.voucher-signatures {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16pt;
+    margin-top: 28pt;
+    page-break-inside: avoid;
+}
+
+.voucher-sig-box {
+    border: 1pt solid #ccc;
+    padding: 8pt 10pt 10pt;
+    text-align: center;
+    background: #fcfcfc;
+}
+
+.voucher-sig-title {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
+    font-weight: bold;
+    color: #1a4d2e;
+    margin-bottom: 4pt;
+    padding-bottom: 4pt;
+    border-bottom: 1pt solid #ddd;
+}
+
+.voucher-sig-role {
+    font-size: 8pt;
+    color: #666;
+    margin-bottom: 10pt;
+}
+
+.voucher-sig-field {
+    display: flex;
+    align-items: baseline;
+    gap: 4pt;
+    font-size: 8.5pt;
+    margin-top: 6pt;
+}
+
+.voucher-sig-field .field-label {
+    color: #666;
+    min-width: 40pt;
+    text-align: left;
+}
+
+.voucher-sig-field .field-line {
+    flex: 1;
+    border-bottom: 1pt dotted #999;
+    min-height: 14pt;
+}
+
+.voucher-sig-field.sig-line .field-line {
+    min-height: 30pt;
+}
+
+/* Footer disclaimer */
+.voucher-footer {
+    margin-top: 14pt;
+    padding-top: 6pt;
+    border-top: 2pt solid #1a4d2e;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.voucher-footer-left {
+    font-size: 7pt;
+    color: #999;
+}
+
+.voucher-footer-center {
+    font-size: 7.5pt;
+    color: #c00;
+    font-weight: bold;
+    letter-spacing: 0.5pt;
+    text-align: center;
+}
+
+.voucher-footer-right {
+    font-size: 7pt;
+    color: #1a4d2e;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+}
+
+/* ============================================
+   STOCK REPORT — Clean redesign
+   ============================================ */
+
+/* Header with GRDA branding */
+.print-header {
+    text-align: center;
+    border-bottom: 3px double #1a4d2e;
+    padding-bottom: 12pt;
+    margin-bottom: 16pt;
+}
+
+.print-header h1 {
+    font-size: 16pt;
+    font-weight: bold;
+    margin: 0 0 2pt 0;
+    letter-spacing: 1pt;
+    text-transform: uppercase;
+    color: #1a4d2e;
+}
+
+.print-header h2 {
+    font-size: 13pt;
+    font-weight: bold;
+    margin: 6pt 0 4pt 0;
+    color: #333;
+}
+
+.print-header p {
+    margin: 0;
+    font-size: 9pt;
+    color: #555;
+}
+
+.print-header .print-date {
+    margin-top: 8pt;
+    font-size: 9pt;
+    color: #666;
+}
+
+/* Summary cards */
+.print-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8pt;
+    margin-bottom: 14pt;
+}
+
+.print-summary-card {
+    border: 1px solid #ccc;
+    padding: 8pt;
+    text-align: center;
+    background: #f9f9f9;
+}
+
+.print-summary-card .label {
+    font-size: 8pt;
+    text-transform: uppercase;
+    color: #666;
+    letter-spacing: 0.5pt;
+}
+
+.print-summary-card .value {
+    font-size: 16pt;
+    font-weight: bold;
+    color: #1a4d2e;
+    margin-top: 2pt;
+}
+
+/* Stock report table */
+.print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12pt;
+    font-size: 10pt;
+}
+
+.print-table th,
+.print-table td {
+    border: 1px solid #999;
+    padding: 5pt 8pt;
+    text-align: left;
+    vertical-align: top;
+}
+
+.print-table th {
+    background-color: #1a4d2e;
+    color: white;
+    font-weight: bold;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5pt;
+}
+
+.print-table tbody tr:nth-child(even) {
+    background-color: #f5f5f5;
+}
+
+.print-table .text-right {
+    text-align: right;
+}
+
+.print-table .text-center {
+    text-align: center;
+}
+
+.print-table tfoot td {
+    font-weight: bold;
+    background-color: #e8f5e9;
+    border-top: 2px solid #1a4d2e;
+}
+
+.print-table .row-num {
+    width: 30pt;
+    text-align: center;
+    color: #666;
+}
+
+/* Signature block for stock report */
+.signature-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24pt;
+    margin-top: 40pt;
+    page-break-inside: avoid;
+}
+
+.signature-item {
+    text-align: center;
+}
+
+.signature-line {
+    border-top: 1px solid #333;
+    margin-top: 50pt;
+    padding-top: 6pt;
+    font-size: 10pt;
+    font-weight: bold;
+}
+
+.signature-role {
+    font-size: 8pt;
+    color: #666;
+    margin-top: 2pt;
+}
+
+.signature-date {
+    font-size: 8pt;
+    color: #999;
+    margin-top: 4pt;
+}
+
+/* Footer */
+.print-footer {
+    margin-top: 20pt;
+    padding-top: 8pt;
+    border-top: 1px solid #ccc;
+    font-size: 8pt;
+    color: #999;
+    text-align: center;
+}
+
+/* ============================================
+   Screen-only Print Trigger Buttons
+   ============================================ */
+.btn-print {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background: #1a4d2e;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-print:hover {
+    background: #143d24;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(26, 77, 46, 0.3);
+}
+
+.btn-print-outline {
+    background: transparent;
+    color: #1a4d2e;
+    border: 1.5px solid #1a4d2e;
+}
+
+.btn-print-outline:hover {
+    background: #e8f5e9;
+}

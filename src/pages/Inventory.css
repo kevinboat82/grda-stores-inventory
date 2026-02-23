@@ -1,0 +1,53 @@
+.filter-bar {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--bg-surface);
+    border-radius: 0.75rem 0.75rem 0 0;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+}
+
+.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-box .form-control {
+    width: 100%;
+    padding-left: 2.5rem;
+}
+
+.filter-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 200px;
+}
+
+.filter-box .form-control {
+    flex: 1;
+}
+
+.py-8 {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.font-medium {
+    font-weight: 500;
+    color: var(--text-primary);
+}
