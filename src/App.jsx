@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { StoreProvider } from './context/StoreContext';
+import { RecordsProvider } from './context/RecordsContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import './App.css';
@@ -14,14 +15,16 @@ import Inventory from './pages/Inventory';
 import StockIn from './pages/StockIn';
 import StockOut from './pages/StockOut';
 import Alerts from './pages/Alerts';
+import RecordsDashboard from './pages/RecordsDashboard';
+import LetterUpload from './pages/LetterUpload';
+import LetterView from './pages/LetterView';
 import Unauthorized from './pages/Unauthorized';
 
 // Home route renders different dashboards based on role
 const HomeRoute = () => {
   const { userRole } = useAuth();
-  if (userRole === 'audit_unit') {
-    return <AuditDashboard />;
-  }
+  if (userRole === 'audit_unit') return <AuditDashboard />;
+  if (userRole === 'records_unit') return <RecordsDashboard />;
   return <Dashboard />;
 };
 
@@ -37,7 +40,7 @@ function App() {
 
 const AppRoutes = () => {
   const location = useLocation();
-  const { user, loading, needsProfileSetup } = useAuth();
+  const { user, userRole, loading, needsProfileSetup } = useAuth();
   const isLoginPage = location.pathname === '/login';
 
   if (loading) {
@@ -49,12 +52,10 @@ const AppRoutes = () => {
     );
   }
 
-  // Redirect authenticated users away from login
   if (isLoginPage && user) {
     return <Navigate to="/" replace />;
   }
 
-  // Show login page (no sidebar)
   if (isLoginPage || !user) {
     return (
       <Routes>
@@ -64,7 +65,6 @@ const AppRoutes = () => {
     );
   }
 
-  // If user needs to complete profile setup (non-audit users without name/position)
   if (needsProfileSetup) {
     return (
       <Routes>
@@ -73,58 +73,64 @@ const AppRoutes = () => {
     );
   }
 
-  // Authenticated layout with sidebar
+  // Determine which provider(s) to wrap based on role
+  const isRecordsUser = userRole === 'records_unit';
+  const isStoresUser = ['admin', 'storekeeper', 'audit_unit'].includes(userRole);
+
+  const renderRoutes = (
+    <div className="app-layout">
+      <Sidebar />
+      <main className="main-content">
+        <Routes>
+          {/* Home — role-aware */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'storekeeper', 'audit_unit', 'records_unit']}>
+                <HomeRoute />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Stores routes */}
+          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><Inventory /></ProtectedRoute>} />
+          <Route path="/receive" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><StockIn /></ProtectedRoute>} />
+          <Route path="/issue" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><StockOut /></ProtectedRoute>} />
+          <Route path="/alerts" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><Alerts /></ProtectedRoute>} />
+
+          {/* Records routes */}
+          <Route path="/records" element={<ProtectedRoute allowedRoles={['admin', 'records_unit']}><RecordsDashboard /></ProtectedRoute>} />
+          <Route path="/records/upload" element={<ProtectedRoute allowedRoles={['admin', 'records_unit']}><LetterUpload /></ProtectedRoute>} />
+          <Route path="/records/view/:id" element={<ProtectedRoute allowedRoles={['admin', 'records_unit']}><LetterView /></ProtectedRoute>} />
+
+          <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+
+  // Wrap with appropriate context providers
+  if (isRecordsUser) {
+    return <RecordsProvider>{renderRoutes}</RecordsProvider>;
+  }
+
+  if (isStoresUser) {
+    return (
+      <StoreProvider>
+        <RecordsProvider>
+          {renderRoutes}
+        </RecordsProvider>
+      </StoreProvider>
+    );
+  }
+
+  // Fallback — both providers
   return (
     <StoreProvider>
-      <div className="app-layout">
-        <Sidebar />
-        <main className="main-content">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'storekeeper', 'audit_unit']}>
-                  <HomeRoute />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/inventory"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'storekeeper']}>
-                  <Inventory />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/receive"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'storekeeper']}>
-                  <StockIn />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/issue"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'storekeeper']}>
-                  <StockOut />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/alerts"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'storekeeper']}>
-                  <Alerts />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/unauthorized" element={<Unauthorized />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
+      <RecordsProvider>
+        {renderRoutes}
+      </RecordsProvider>
     </StoreProvider>
   );
 };

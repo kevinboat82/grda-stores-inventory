@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BarChart3, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BarChart3, LogOut, Menu, X, FileText, Upload } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
@@ -15,7 +15,7 @@ const Sidebar = () => {
         setIsOpen(false);
     }, [location.pathname]);
 
-    // Close sidebar when clicking outside (mobile)
+    // Close sidebar when resizing to desktop
     useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth > 768) setIsOpen(false);
@@ -34,6 +34,17 @@ const Sidebar = () => {
     };
 
     const isAuditUser = userRole === 'audit_unit';
+    const isRecordsUser = userRole === 'records_unit';
+
+    const getRoleLabel = (role) => {
+        switch (role) {
+            case 'admin': return 'Store Manager';
+            case 'audit_unit': return 'Audit Unit';
+            case 'records_unit': return 'Records Unit';
+            case 'storekeeper': return 'Storekeeper';
+            default: return role;
+        }
+    };
 
     return (
         <>
@@ -50,7 +61,9 @@ const Sidebar = () => {
                     <img src="/grda-logo.png" className="logo-icon-img" alt="GRDA Logo" />
                     <div style={{ flex: 1 }}>
                         <h1 className="logo-title">GRDA Stores</h1>
-                        <p className="logo-subtitle">Inventory System</p>
+                        <p className="logo-subtitle">
+                            {isRecordsUser ? 'Records Management' : 'Inventory System'}
+                        </p>
                     </div>
                     <button className="sidebar-close-btn" onClick={() => setIsOpen(false)} aria-label="Close menu">
                         <X size={20} />
@@ -59,11 +72,25 @@ const Sidebar = () => {
 
                 <nav className="sidebar-nav">
                     {isAuditUser ? (
+                        /* Audit Unit */
                         <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
                             <BarChart3 size={20} />
                             <span>Audit Summary</span>
                         </NavLink>
+                    ) : isRecordsUser ? (
+                        /* Records Unit */
+                        <>
+                            <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
+                                <FileText size={20} />
+                                <span>Records Dashboard</span>
+                            </NavLink>
+                            <NavLink to="/records/upload" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <Upload size={20} />
+                                <span>Upload Letter</span>
+                            </NavLink>
+                        </>
                     ) : (
+                        /* Admin / Storekeeper */
                         <>
                             <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
                                 <LayoutDashboard size={20} />
@@ -85,6 +112,17 @@ const Sidebar = () => {
                                 <AlertTriangle size={20} />
                                 <span>Low Stock Alerts</span>
                             </NavLink>
+
+                            {/* Admin also sees Records */}
+                            {userRole === 'admin' && (
+                                <>
+                                    <div className="nav-divider"></div>
+                                    <NavLink to="/records" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                        <FileText size={20} />
+                                        <span>Records</span>
+                                    </NavLink>
+                                </>
+                            )}
                         </>
                     )}
                 </nav>
@@ -96,7 +134,7 @@ const Sidebar = () => {
                         </div>
                         <div className="user-info">
                             <p className="user-name">{userProfile?.name || 'User'}</p>
-                            <p className="user-role">{userProfile?.role === 'admin' ? 'Store Manager' : userProfile?.role === 'audit_unit' ? 'Audit Unit' : 'Storekeeper'}</p>
+                            <p className="user-role">{getRoleLabel(userProfile?.role)}</p>
                         </div>
                     </div>
 

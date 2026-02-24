@@ -14,6 +14,8 @@ const POSITIONS = [
     'Inventory Clerk',
     'Supply Chain Officer',
     'Records Officer',
+    'Registry Clerk',
+    'Filing Officer',
 ];
 
 const ProfileSetup = () => {
@@ -140,7 +142,7 @@ const ProfileSetup = () => {
                         marginBottom: '0.5rem',
                     }}>
                         <strong>Your email:</strong> {userProfile?.email}<br />
-                        <strong>Role:</strong> {userProfile?.role === 'admin' ? 'Store Manager (Admin)' : 'Storekeeper'}
+                        <strong>Role:</strong> {userProfile?.role === 'admin' ? 'Store Manager (Admin)' : userProfile?.role === 'records_unit' ? 'Records Unit' : 'Storekeeper'}
                     </div>
 
                     <button
