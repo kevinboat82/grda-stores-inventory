@@ -543,6 +543,174 @@ export function printStockReport({ items, filterCategory, userProfile }) {
     }, 500);
 }
 
+/**
+ * Print the Full Audit Report in a new window.
+ * Contains both Current Stock and Transaction History.
+ * @param {Object} params - { items, transactions, userProfile }
+ */
+export function printAuditReport({ items, transactions, userProfile }) {
+    const now = new Date();
+    const dateStr = formatDate(now);
+    const timeStr = formatTime(now);
+
+    // Filter out internal zero-balance seed items if needed (optional)
+    const validItems = items;
+
+    // Sort transactions newest first
+    const sortedTxns = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Summary Metrics
+    const totalItems = validItems.length;
+    const totalStock = validItems.reduce((s, i) => s + (Number(i.stock) || 0), 0);
+    const totalReceived = transactions.filter(t => t.type === 'IN').reduce((s, t) => s + (Number(t.quantity) || 0), 0);
+    const totalIssued = transactions.filter(t => t.type === 'OUT').reduce((s, t) => s + (Number(t.quantity) || 0), 0);
+
+    // Stock Table Rows
+    const stockRows = validItems.map((item, idx) => `
+        <tr>
+            <td style="text-align:center;color:#666">${idx + 1}</td>
+            <td>${escapeHtml(item.name)}</td>
+            <td>${escapeHtml(item.sku)}</td>
+            <td>${escapeHtml(item.category)}</td>
+            <td>${escapeHtml(item.unit)}</td>
+            <td style="text-align:right; font-weight:bold;">${item.stock}</td>
+            <td style="text-align:center">${item.reorderLevel}</td>
+        </tr>
+    `).join('');
+
+    // Transaction Table Rows
+    const txnRows = sortedTxns.map((txn, idx) => {
+        const item = items.find(i => i.id === txn.itemId);
+        const itemName = item ? item.name : txn.itemId;
+        const typeColor = txn.type === 'IN' ? '#059669' : '#d97706';
+        const typeBg = txn.type === 'IN' ? '#ecfdf5' : '#fffbeb';
+        const typeSign = txn.type === 'IN' ? '+' : '-';
+
+        return `
+        <tr>
+            <td style="text-align:center;color:#666">${idx + 1}</td>
+            <td>${formatDate(txn.date)} ${formatTime(txn.date)}</td>
+            <td style="font-family:monospace;font-size:8.5pt;">${escapeHtml(txn.id)}</td>
+            <td style="text-align:center"><span style="background:${typeBg};color:${typeColor};padding:2pt 4pt;border-radius:2pt;font-size:7.5pt;font-weight:bold;">Stock ${txn.type}</span></td>
+            <td>${escapeHtml(itemName)}</td>
+            <td style="text-align:right;font-weight:bold;">${typeSign}${txn.quantity}</td>
+            <td>${escapeHtml(txn.user)}</td>
+            <td>${escapeHtml(txn.reference || '-')}</td>
+        </tr>
+        `;
+    }).join('');
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Comprehensive Audit Report — ${dateStr}</title>
+    <style>
+        @page { size: A4 portrait; margin: 12mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Georgia', 'Times New Roman', serif; font-size: 9.5pt; color: #000; background: white; line-height: 1.3; }
+        
+        /* Typography */
+        h1 { font-size: 16pt; color: #1a4d2e; letter-spacing: 1pt; text-transform: uppercase; margin: 0; text-align: center; }
+        h2 { font-size: 13pt; color: #333; margin: 20pt 0 8pt; border-bottom: 2pt solid #1a4d2e; padding-bottom: 4pt; }
+        .subtext { font-size: 8.5pt; color: #555; text-align: center; margin: 2pt 0; }
+        .metadata { font-size: 8pt; color: #666; text-align: right; margin-bottom: 12pt; }
+        
+        /* Summary Grid */
+        .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8pt; margin-bottom: 20pt; }
+        .summary-card { border: 1pt solid #ccc; padding: 8pt; text-align: center; background: #f9f9f9; }
+        .summary-card .label { font-size: 7.5pt; text-transform: uppercase; color: #666; letter-spacing: 0.5pt; margin-bottom: 4pt; }
+        .summary-card .value { font-size: 16pt; font-weight: bold; color: #1a4d2e; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-bottom: 24pt; font-size: 8.5pt; }
+        th { background: #1a4d2e; color: white; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5pt; padding: 5pt; border: 1pt solid #1a4d2e; text-align: left; }
+        td { border: 1pt solid #ccc; padding: 4pt 5pt; }
+        tbody tr:nth-child(even) { background: #f5f5f5; }
+        
+        /* Footer */
+        .footer-note { font-size: 7.5pt; color: #999; text-align: center; border-top: 1pt solid #eee; padding-top: 8pt; margin-top: 30pt; }
+        
+        /* Print Rules */
+        .page-break { page-break-before: always; }
+        @media print {
+            .no-break { page-break-inside: avoid; }
+            thead { display: table-header-group; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Ghana Railway Development Authority</h1>
+    <div class="subtext">Stores Department</div>
+    <div class="subtext"><strong>Comprehensive Audit Report</strong></div>
+    <div class="metadata">Generated on ${dateStr} at ${timeStr}<br/>By: ${escapeHtml(userProfile?.name || 'Audit Unit')}</div>
+
+    <div class="summary">
+        <div class="summary-card"><div class="label">Total Unique Items</div><div class="value">${totalItems}</div></div>
+        <div class="summary-card"><div class="label">Total Current Stock</div><div class="value">${totalStock}</div></div>
+        <div class="summary-card"><div class="label">Lifetime Received (IN)</div><div class="value">${totalReceived}</div></div>
+        <div class="summary-card"><div class="label">Lifetime Issued (OUT)</div><div class="value">${totalIssued}</div></div>
+    </div>
+
+    <h2>1. Current Stock Inventory</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:24pt;text-align:center">#</th>
+                <th>Item Name</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>Unit</th>
+                <th style="text-align:right">Stock Qty</th>
+                <th style="text-align:center">Reorder Lvl</th>
+            </tr>
+        </thead>
+        <tbody>${stockRows}</tbody>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2>2. Complete Transaction History</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:24pt;text-align:center">#</th>
+                <th>Date & Time</th>
+                <th>Transaction ID</th>
+                <th style="text-align:center">Type</th>
+                <th>Item</th>
+                <th style="text-align:right">Qty</th>
+                <th>User / Officer</th>
+                <th>Reference</th>
+            </tr>
+        </thead>
+        <tbody>${txnRows}</tbody>
+    </table>
+
+    <div class="footer-note">
+        GRDA Stores Inventory System · Secure Audit Export · Page generated automatically
+    </div>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank', 'width=1100,height=800');
+    if (!printWindow) {
+        alert('Please allow pop-ups to print the report.');
+        return;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+    };
+    setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+    }, 500);
+}
+
 // ── Helpers ──
 
 function generateVoucherNum(date) {
