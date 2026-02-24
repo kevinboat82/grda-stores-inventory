@@ -60,7 +60,7 @@ const Sidebar = () => {
                 <div className="sidebar-header">
                     <img src="/grda-logo.png" className="logo-icon-img" alt="GRDA Logo" />
                     <div style={{ flex: 1 }}>
-                        <h1 className="logo-title" style={{ fontSize: '1.25rem' }}>GRDA Inventory System</h1>
+                        <h1 className="logo-title">GRDA Inventory System</h1>
                         <p className="logo-subtitle">
                             {isRecordsUser ? 'Records Management' : 'Inventory System'}
                         </p>
