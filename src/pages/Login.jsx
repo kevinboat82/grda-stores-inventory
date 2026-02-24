@@ -43,7 +43,7 @@ const Login = () => {
             <div className="login-card">
                 <div className="login-header">
                     <img src="/grda-logo.png" className="login-logo" alt="GRDA Logo" />
-                    <h1 className="login-title">GRDA Stores</h1>
+                    <h1 className="login-title">GRDA Inventory System</h1>
                     <p className="login-subtitle">Inventory Management System</p>
                 </div>
 
