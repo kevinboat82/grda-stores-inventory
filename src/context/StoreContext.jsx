@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
-import { listDocuments, addDocument as addDocRest, updateDocument } from '../utils/firestoreRest';
+import { listDocuments, addDocument as addDocRest, updateDocument, deleteDocument } from '../utils/firestoreRest';
 
 // SDK imports (used locally where SDK works)
 import {
-    collection, addDoc, doc, updateDoc, writeBatch, onSnapshot, query, orderBy
+    collection, addDoc, doc, updateDoc, deleteDoc, writeBatch, onSnapshot, query, orderBy
 } from 'firebase/firestore';
 
 const StoreContext = createContext();
@@ -20,7 +20,7 @@ export const StoreProvider = ({ children }) => {
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [dataLoading, setDataLoading] = useState(true);
-    const [useRest, setUseRest] = useState(isDeployed); // Go straight to REST on Vercel
+    const [useRest, setUseRest] = useState(isDeployed);
     const { user, userProfile } = useAuth();
 
     // Fetch data via REST API
@@ -38,7 +38,6 @@ export const StoreProvider = ({ children }) => {
 
             setItems(itemsData || []);
             setCategories(catData || []);
-            // Sort transactions by date descending (client-side)
             const sortedTxns = (txnData || []).sort((a, b) =>
                 (b.date || '').localeCompare(a.date || '')
             );
@@ -61,13 +60,11 @@ export const StoreProvider = ({ children }) => {
             return;
         }
 
-        // On deployed environments, skip SDK entirely and use REST
         if (useRest) {
             fetchAllViaRest();
             return;
         }
 
-        // On localhost, use SDK real-time listeners
         const unsubItems = onSnapshot(collection(db, 'items'), (snapshot) => {
             const itemsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             setItems(itemsData);
@@ -108,6 +105,28 @@ export const StoreProvider = ({ children }) => {
             return result;
         } else {
             await addDoc(collection(db, 'items'), itemData);
+        }
+    }, [useRest, user]);
+
+    const updateItem = useCallback(async (itemId, updates) => {
+        if (useRest && user) {
+            const idToken = await user.getIdToken();
+            await updateDocument(`items/${itemId}`, updates, idToken);
+            setItems(prev => prev.map(i => i.id === itemId ? { ...i, ...updates } : i));
+        } else {
+            const itemRef = doc(db, 'items', itemId);
+            await updateDoc(itemRef, updates);
+        }
+    }, [useRest, user]);
+
+    const deleteItem = useCallback(async (itemId) => {
+        if (useRest && user) {
+            const idToken = await user.getIdToken();
+            await deleteDocument(`items/${itemId}`, idToken);
+            setItems(prev => prev.filter(i => i.id !== itemId));
+        } else {
+            await deleteDoc(doc(db, 'items', itemId));
+            setItems(prev => prev.filter(i => i.id !== itemId));
         }
     }, [useRest, user]);
 
@@ -154,6 +173,8 @@ export const StoreProvider = ({ children }) => {
         transactions,
         dataLoading,
         addItem,
+        updateItem,
+        deleteItem,
         addTransaction,
         refreshData: fetchAllViaRest,
     };
@@ -164,3 +185,4 @@ export const StoreProvider = ({ children }) => {
         </StoreContext.Provider>
     );
 };
+
