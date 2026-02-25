@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
 import { listDocuments, addDocument as addDocRest, updateDocument, deleteDocument } from '../utils/firestoreRest';
+import { logActivity, ACTIONS } from '../utils/auditLog';
 
 // SDK imports (used locally where SDK works)
 import {
@@ -102,33 +103,58 @@ export const StoreProvider = ({ children }) => {
             const idToken = await user.getIdToken();
             const result = await addDocRest('items', itemData, idToken);
             setItems(prev => [...prev, result]);
+            await logActivity({
+                action: ACTIONS.ITEM_CREATED,
+                details: `Added item: ${newItem.name} (${newItem.sku})`,
+                userId: user.uid,
+                userName: userProfile?.name || userProfile?.email,
+                targetId: result.id,
+                targetType: 'item',
+            }, idToken);
             return result;
         } else {
             await addDoc(collection(db, 'items'), itemData);
         }
-    }, [useRest, user]);
+    }, [useRest, user, userProfile]);
 
     const updateItem = useCallback(async (itemId, updates) => {
         if (useRest && user) {
             const idToken = await user.getIdToken();
             await updateDocument(`items/${itemId}`, updates, idToken);
             setItems(prev => prev.map(i => i.id === itemId ? { ...i, ...updates } : i));
+            await logActivity({
+                action: ACTIONS.ITEM_UPDATED,
+                details: `Updated item: ${updates.name || itemId}`,
+                userId: user.uid,
+                userName: userProfile?.name || userProfile?.email,
+                targetId: itemId,
+                targetType: 'item',
+            }, idToken);
         } else {
             const itemRef = doc(db, 'items', itemId);
             await updateDoc(itemRef, updates);
         }
-    }, [useRest, user]);
+    }, [useRest, user, userProfile]);
 
     const deleteItem = useCallback(async (itemId) => {
+        const item = items.find(i => i.id === itemId);
         if (useRest && user) {
             const idToken = await user.getIdToken();
             await deleteDocument(`items/${itemId}`, idToken);
             setItems(prev => prev.filter(i => i.id !== itemId));
+            await logActivity({
+                action: ACTIONS.ITEM_DELETED,
+                details: `Deleted item: ${item?.name || itemId}`,
+                userId: user.uid,
+                userName: userProfile?.name || userProfile?.email,
+                targetId: itemId,
+                targetType: 'item',
+            }, idToken);
         } else {
             await deleteDoc(doc(db, 'items', itemId));
             setItems(prev => prev.filter(i => i.id !== itemId));
         }
-    }, [useRest, user]);
+    }, [items, useRest, user, userProfile]);
 
     const addTransaction = useCallback(async (transactionData) => {
         const { itemId, type, quantity } = transactionData;
@@ -157,6 +183,14 @@ export const StoreProvider = ({ children }) => {
             const result = await addDocRest('transactions', txnRecord, idToken);
             setItems(prev => prev.map(i => i.id === itemId ? { ...i, stock: newStock } : i));
             setTransactions(prev => [result, ...prev]);
+            await logActivity({
+                action: type === 'IN' ? ACTIONS.STOCK_IN : ACTIONS.STOCK_OUT,
+                details: `${type === 'IN' ? 'Received' : 'Issued'} ${qty} × ${item.name}`,
+                userId: user.uid,
+                userName: userProfile?.name || userProfile?.email,
+                targetId: itemId,
+                targetType: 'item',
+            }, idToken);
         } else {
             const batch = writeBatch(db);
             const itemRef = doc(db, 'items', itemId);

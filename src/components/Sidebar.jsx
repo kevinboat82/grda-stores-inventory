@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BarChart3, LogOut, Menu, X, FileText, Upload, Users } from 'lucide-react';
+import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BarChart3, LogOut, Menu, X, FileText, Upload, Users, ClipboardList } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
@@ -124,6 +124,10 @@ const Sidebar = () => {
                                     <NavLink to="/records" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                         <FileText size={20} />
                                         <span>Records Module</span>
+                                    </NavLink>
+                                    <NavLink to="/activity-log" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                        <ClipboardList size={20} />
+                                        <span>Activity Log</span>
                                     </NavLink>
                                 </>
                             )}

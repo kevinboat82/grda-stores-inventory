@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { listDocuments } from '../utils/firestoreRest';
-import { Plus, X, UserCheck, UserX, Shield, Edit2, Loader, Trash2 } from 'lucide-react';
+import { Plus, X, UserCheck, UserX, Shield, Edit2, Loader, Trash2, Key, LogOut } from 'lucide-react';
 import './Users.css';
 
 const POSITIONS = [
@@ -20,7 +20,7 @@ const ROLES = [
 ];
 
 export default function UserManagement() {
-    const { user, adminCreateUser, updateUserRole, toggleUserStatus, deleteUser } = useAuth();
+    const { user, adminCreateUser, updateUserRole, toggleUserStatus, deleteUser, adminResetPassword, forceUserLogout } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -118,6 +118,26 @@ export default function UserManagement() {
         }
     };
 
+    const handleResetPassword = async (targetUser) => {
+        if (!window.confirm(`Send a password reset email to ${targetUser.email}?`)) return;
+        try {
+            await adminResetPassword(targetUser.email);
+            alert(`Password reset email sent to ${targetUser.email}`);
+        } catch (err) {
+            alert('Failed to send reset email: ' + err.message);
+        }
+    };
+
+    const handleForceLogout = async (targetUser) => {
+        if (!window.confirm(`Force ${targetUser.name || targetUser.email} to log out?`)) return;
+        try {
+            await forceUserLogout(targetUser.uid);
+            alert(`Force logout triggered for ${targetUser.name || targetUser.email}. They will be logged out within 30 seconds.`);
+        } catch (err) {
+            alert('Failed to force logout: ' + err.message);
+        }
+    };
+
     const openEditModal = (targetUser) => {
         setSelectedUser(targetUser);
         setFormData({ ...formData, role: targetUser.role });
@@ -166,6 +186,7 @@ export default function UserManagement() {
                                 <th>Position</th>
                                 <th>Role</th>
                                 <th>Status</th>
+                                <th>Session</th>
                                 <th style={{ textAlign: 'right' }}>Actions</th>
                             </tr>
                         </thead>
@@ -188,32 +209,64 @@ export default function UserManagement() {
                                                 {isActive ? 'Active' : 'Deactivated'}
                                             </span>
                                         </td>
+                                        <td>
+                                            <span style={{
+                                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                                                fontSize: '0.75rem', fontWeight: 500,
+                                                color: u.isOnline ? '#10b981' : 'var(--text-muted)'
+                                            }}>
+                                                <span style={{
+                                                    width: '6px', height: '6px', borderRadius: '50%',
+                                                    background: u.isOnline ? '#10b981' : '#d1d5db',
+                                                    display: 'inline-block'
+                                                }}></span>
+                                                {u.isOnline ? 'Online' : 'Offline'}
+                                            </span>
+                                        </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', flexWrap: 'wrap' }}>
                                                 <button
                                                     className="btn btn-outline"
-                                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                                    style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
                                                     onClick={() => openEditModal(u)}
                                                     title="Change Role"
                                                 >
-                                                    <Edit2 size={12} /> Role
+                                                    <Edit2 size={11} /> Role
                                                 </button>
                                                 <button
+                                                    className="btn btn-outline"
+                                                    style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
+                                                    onClick={() => handleResetPassword(u)}
+                                                    title="Send Password Reset Email"
+                                                >
+                                                    <Key size={11} /> Reset
+                                                </button>
+                                                {u.isOnline && (
+                                                    <button
+                                                        className="btn btn-outline"
+                                                        style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--warning)' }}
+                                                        onClick={() => handleForceLogout(u)}
+                                                        title="Force Logout"
+                                                    >
+                                                        <LogOut size={11} /> Kick
+                                                    </button>
+                                                )}
+                                                <button
                                                     className={`btn ${isActive ? 'btn-danger' : 'btn-primary'}`}
-                                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                                    style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
                                                     onClick={() => handleToggleStatus(u)}
                                                     title={isActive ? 'Deactivate Account' : 'Reactivate Account'}
                                                 >
-                                                    {isActive ? <UserX size={12} /> : <UserCheck size={12} />}
+                                                    {isActive ? <UserX size={11} /> : <UserCheck size={11} />}
                                                     {isActive ? 'Disable' : 'Enable'}
                                                 </button>
                                                 <button
                                                     className="btn btn-outline"
-                                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)' }}
+                                                    style={{ padding: '0.2rem 0.4rem', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem', color: 'var(--danger)' }}
                                                     onClick={() => handleDeleteUser(u)}
                                                     title="Delete User"
                                                 >
-                                                    <Trash2 size={12} /> Delete
+                                                    <Trash2 size={11} />
                                                 </button>
                                             </div>
                                         </td>
@@ -222,7 +275,7 @@ export default function UserManagement() {
                             })}
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>No users found.</td>
+                                    <td colSpan="7" style={{ textAlign: 'center', padding: '2rem' }}>No users found.</td>
                                 </tr>
                             )}
                         </tbody>

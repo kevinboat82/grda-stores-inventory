@@ -19,6 +19,7 @@ import RecordsDashboard from './pages/RecordsDashboard';
 import LetterUpload from './pages/LetterUpload';
 import LetterView from './pages/LetterView';
 import UserManagement from './pages/UserManagement';
+import ActivityLog from './pages/ActivityLog';
 import Unauthorized from './pages/Unauthorized';
 import ChangePassword from './pages/ChangePassword';
 
@@ -110,6 +111,7 @@ const AppRoutes = () => {
 
           {/* Admin routes */}
           <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
+          <Route path="/activity-log" element={<ProtectedRoute allowedRoles={['admin']}><ActivityLog /></ProtectedRoute>} />
 
           {/* Records routes */}
           <Route path="/records" element={<ProtectedRoute allowedRoles={['admin', 'records_unit']}><RecordsDashboard /></ProtectedRoute>} />
