@@ -20,6 +20,7 @@ import LetterUpload from './pages/LetterUpload';
 import LetterView from './pages/LetterView';
 import UserManagement from './pages/UserManagement';
 import Unauthorized from './pages/Unauthorized';
+import ChangePassword from './pages/ChangePassword';
 
 // Home route renders different dashboards based on role
 const HomeRoute = () => {
@@ -41,7 +42,7 @@ function App() {
 
 const AppRoutes = () => {
   const location = useLocation();
-  const { user, userRole, loading, needsProfileSetup } = useAuth();
+  const { user, userRole, loading, needsProfileSetup, mustChangePassword } = useAuth();
   const isLoginPage = location.pathname === '/login';
 
   if (loading) {
@@ -62,6 +63,14 @@ const AppRoutes = () => {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  if (mustChangePassword) {
+    return (
+      <Routes>
+        <Route path="*" element={<ChangePassword />} />
       </Routes>
     );
   }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
 import { auth, adminAuth } from '../firebase';
 import { getDocument, setDocument, updateDocument } from '../utils/firestoreRest';
 
@@ -120,6 +120,7 @@ export const AuthProvider = ({ children }) => {
             position: position || '',
             name: name || '',
             isActive: true,
+            mustChangePassword: true,
             createdAt: new Date().toISOString()
         };
 
@@ -143,9 +144,21 @@ export const AuthProvider = ({ children }) => {
         await updateDocument(`users/${uid}`, { isActive: !currentIsActive }, idToken);
     }, [user, userProfile]);
 
+    const changePassword = useCallback(async (newPassword) => {
+        if (!user) throw new Error('Not authenticated');
+        // Update Firebase Auth password
+        await updatePassword(user, newPassword);
+        // Clear the mustChangePassword flag in Firestore
+        const idToken = await user.getIdToken(true);
+        await updateDocument(`users/${user.uid}`, { mustChangePassword: false }, idToken);
+        setUserProfile(prev => ({ ...prev, mustChangePassword: false }));
+    }, [user]);
+
     const needsProfileSetup = userProfile
         && userProfile.role !== 'audit_unit'
         && (!userProfile.name || !userProfile.position);
+
+    const mustChangePassword = userProfile?.mustChangePassword === true;
 
     const value = {
         user: user === undefined ? null : user,
@@ -153,9 +166,11 @@ export const AuthProvider = ({ children }) => {
         userRole: userProfile?.role || null,
         loading,
         needsProfileSetup,
+        mustChangePassword,
         login,
         logout,
         updateProfile,
+        changePassword,
         adminCreateUser,
         updateUserRole,
         toggleUserStatus
