@@ -14,9 +14,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-// Use initializeFirestore with long-polling fallback to avoid WebSocket blocking
+// Force long-polling to avoid WebSocket connection issues on deployed environments
 export const db = initializeFirestore(app, {
-    experimentalAutoDetectLongPolling: true,
+    experimentalForceLongPolling: true,
 });
 export const storage = getStorage(app);
 

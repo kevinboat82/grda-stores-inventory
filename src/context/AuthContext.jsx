@@ -1,25 +1,33 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, adminAuth, db } from '../firebase';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
-// Helper: fetch user profile with retry logic for network resilience
-const fetchUserProfile = async (uid, maxRetries = 3) => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            const userDoc = await getDoc(doc(db, 'users', uid));
-            return userDoc;
-        } catch (error) {
-            console.warn(`[Auth] Profile fetch attempt ${attempt}/${maxRetries} failed:`, error.message);
-            if (attempt === maxRetries) throw error;
-            // Wait before retrying (500ms, 1000ms, 1500ms)
-            await new Promise(resolve => setTimeout(resolve, attempt * 500));
-        }
-    }
+// Helper: fetch user profile using onSnapshot (works during offline→online transition)
+const fetchUserProfile = (uid, timeoutMs = 10000) => {
+    return new Promise((resolve, reject) => {
+        const docRef = doc(db, 'users', uid);
+        const timer = setTimeout(() => {
+            unsubscribe();
+            console.warn('[Auth] Profile fetch timed out after', timeoutMs, 'ms');
+            resolve(null); // Resolve with null instead of rejecting
+        }, timeoutMs);
+
+        const unsubscribe = onSnapshot(docRef, (docSnap) => {
+            clearTimeout(timer);
+            unsubscribe();
+            resolve(docSnap);
+        }, (error) => {
+            clearTimeout(timer);
+            unsubscribe();
+            console.error('[Auth] onSnapshot error:', error);
+            resolve(null); // Resolve with null instead of rejecting
+        });
+    });
 };
 
 export const AuthProvider = ({ children }) => {
@@ -30,35 +38,26 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
-                // Fetch profile BEFORE updating any state
+                // Fetch profile using onSnapshot (handles offline→online gracefully)
                 let profile = null;
-                try {
-                    const userDoc = await fetchUserProfile(firebaseUser.uid);
-                    if (userDoc.exists()) {
-                        profile = userDoc.data();
+                const userDoc = await fetchUserProfile(firebaseUser.uid);
 
-                        // Check if account is deactivated
-                        if (profile.isActive === false) {
-                            console.warn('[Auth] Account is deactivated:', firebaseUser.uid);
-                            await signOut(auth);
-                            setUser(null);
-                            setUserProfile(null);
-                            setLoading(false);
-                            return; // Stop here
-                        }
+                if (userDoc && userDoc.exists()) {
+                    profile = userDoc.data();
 
-                        console.log('[Auth] User profile loaded:', profile.email, 'Role:', profile.role);
-                    } else {
-                        console.warn('[Auth] No user profile found for UID:', firebaseUser.uid);
-                        profile = {
-                            name: '',
-                            role: 'none',
-                            email: firebaseUser.email,
-                            isActive: true, // default to true if missing
-                        };
+                    // Check if account is deactivated
+                    if (profile.isActive === false) {
+                        console.warn('[Auth] Account is deactivated:', firebaseUser.uid);
+                        await signOut(auth);
+                        setUser(null);
+                        setUserProfile(null);
+                        setLoading(false);
+                        return; // Stop here
                     }
-                } catch (error) {
-                    console.error('[Auth] Error fetching user profile after retries:', error);
+
+                    console.log('[Auth] User profile loaded:', profile.email, 'Role:', profile.role);
+                } else {
+                    console.warn('[Auth] No user profile found for UID:', firebaseUser.uid);
                     profile = {
                         name: '',
                         role: 'none',
