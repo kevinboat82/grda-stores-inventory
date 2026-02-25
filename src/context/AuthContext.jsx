@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, adminAuth, db } from '../firebase';
@@ -8,24 +8,51 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(undefined); // undefined = not yet checked
+    const [user, setUser] = useState(undefined);
     const [userProfile, setUserProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const inactivityTimer = useRef(null);
 
+    // --- Inactivity auto-logout ---
+    const resetInactivityTimer = useCallback(() => {
+        if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+        inactivityTimer.current = setTimeout(async () => {
+            console.warn('[Auth] Inactivity timeout — logging out');
+            await signOut(auth);
+        }, INACTIVITY_TIMEOUT_MS);
+    }, []);
+
+    useEffect(() => {
+        const events = ['mousedown', 'keydown', 'touchstart', 'mousemove', 'scroll'];
+        const handleActivity = () => resetInactivityTimer();
+
+        // Only set up listeners if user is logged in
+        if (user) {
+            events.forEach(evt => window.addEventListener(evt, handleActivity, { passive: true }));
+            resetInactivityTimer(); // Start the timer
+        }
+
+        return () => {
+            events.forEach(evt => window.removeEventListener(evt, handleActivity));
+            if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+        };
+    }, [user, resetInactivityTimer]);
+
+    // --- Auth state listener ---
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
                 let profile = null;
                 try {
-                    // Get the user's ID token for REST API auth
                     const idToken = await firebaseUser.getIdToken();
                     const profileData = await getDocument(`users/${firebaseUser.uid}`, idToken);
 
                     if (profileData) {
                         profile = profileData;
 
-                        // Check if account is deactivated
                         if (profile.isActive === false) {
                             console.warn('[Auth] Account is deactivated:', firebaseUser.uid);
                             await signOut(auth);
@@ -71,6 +98,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const logout = useCallback(async () => {
+        if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
         return signOut(auth);
     }, []);
 
@@ -81,7 +109,6 @@ export const AuthProvider = ({ children }) => {
         setUserProfile(prev => ({ ...prev, ...updates }));
     }, [user]);
 
-    // Admin functions for User Management
     const adminCreateUser = useCallback(async (email, password, role, position, name) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
 
