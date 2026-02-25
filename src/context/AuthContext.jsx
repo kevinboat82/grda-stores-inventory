@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
-import { auth, adminAuth, db } from '../firebase';
-import { getDocument } from '../utils/firestoreRest';
+import { auth, adminAuth } from '../firebase';
+import { getDocument, setDocument, updateDocument } from '../utils/firestoreRest';
 
 const AuthContext = createContext();
 
@@ -104,10 +103,10 @@ export const AuthProvider = ({ children }) => {
 
     const updateProfile = useCallback(async (updates) => {
         if (!user) throw new Error('Not authenticated');
-        const userRef = doc(db, 'users', user.uid);
-        await setDoc(userRef, updates, { merge: true });
+        const idToken = await user.getIdToken();
+        await setDocument(`users/${user.uid}`, { ...userProfile, ...updates }, idToken);
         setUserProfile(prev => ({ ...prev, ...updates }));
-    }, [user]);
+    }, [user, userProfile]);
 
     const adminCreateUser = useCallback(async (email, password, role, position, name) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
@@ -124,23 +123,25 @@ export const AuthProvider = ({ children }) => {
             createdAt: new Date().toISOString()
         };
 
-        await setDoc(doc(db, 'users', newUid), newUserProfile);
+        // Use the admin's token to write the new user's profile via REST API
+        const idToken = await user.getIdToken();
+        await setDocument(`users/${newUid}`, newUserProfile, idToken);
         await signOut(adminAuth);
 
         return { uid: newUid, ...newUserProfile };
-    }, [userProfile]);
+    }, [user, userProfile]);
 
     const updateUserRole = useCallback(async (uid, newRole) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
-        const userRef = doc(db, 'users', uid);
-        await updateDoc(userRef, { role: newRole });
-    }, [userProfile]);
+        const idToken = await user.getIdToken();
+        await updateDocument(`users/${uid}`, { role: newRole }, idToken);
+    }, [user, userProfile]);
 
     const toggleUserStatus = useCallback(async (uid, currentIsActive) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
-        const userRef = doc(db, 'users', uid);
-        await updateDoc(userRef, { isActive: !currentIsActive });
-    }, [userProfile]);
+        const idToken = await user.getIdToken();
+        await updateDocument(`users/${uid}`, { isActive: !currentIsActive }, idToken);
+    }, [user, userProfile]);
 
     const needsProfileSetup = userProfile
         && userProfile.role !== 'audit_unit'
