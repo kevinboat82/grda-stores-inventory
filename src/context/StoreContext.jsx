@@ -1,19 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-    collection,
-    onSnapshot,
-    addDoc,
-    doc,
-    updateDoc,
-    getDocs,
-    writeBatch,
-    query,
-    orderBy,
-    serverTimestamp
-} from 'firebase/firestore';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
-import { seedFirestoreData } from '../utils/seedData';
+import { listDocuments, addDocument as addDocRest, updateDocument, setDocument } from '../utils/firestoreRest';
+
+// SDK imports as fallback for writes
+import {
+    collection, addDoc, doc, updateDoc, writeBatch, onSnapshot, query, orderBy
+} from 'firebase/firestore';
 
 const StoreContext = createContext();
 
@@ -24,61 +17,121 @@ export const StoreProvider = ({ children }) => {
     const [categories, setCategories] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [dataLoading, setDataLoading] = useState(true);
-    const { userProfile } = useAuth();
+    const [useRest, setUseRest] = useState(false);
+    const { user, userProfile } = useAuth();
 
-    // Real-time Firestore listeners
+    // Try SDK first, fallback to REST API
     useEffect(() => {
-        setDataLoading(true);
-
-        // Listen to items collection
-        const unsubItems = onSnapshot(collection(db, 'items'), (snapshot) => {
-            const itemsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-            setItems(itemsData);
-        });
-
-        // Listen to categories collection
-        const unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
-            const catData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-            setCategories(catData);
-        });
-
-        // Listen to transactions collection (ordered by date descending)
-        const txnQuery = query(collection(db, 'transactions'), orderBy('date', 'desc'));
-        const unsubTxns = onSnapshot(txnQuery, (snapshot) => {
-            const txnData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-            setTransactions(txnData);
+        if (!user) {
+            setItems([]);
+            setCategories([]);
+            setTransactions([]);
             setDataLoading(false);
-        });
+            return;
+        }
 
-        // Seed data if collections are empty (one-time)
-        seedFirestoreData();
+        let sdkTimeout;
+        let unsubItems, unsubCategories, unsubTxns;
+        let sdkWorked = false;
 
-        return () => {
-            unsubItems();
-            unsubCategories();
-            unsubTxns();
-        };
-    }, []);
+        // Set a timeout: if SDK doesn't deliver data within 5s, switch to REST
+        sdkTimeout = setTimeout(async () => {
+            if (!sdkWorked) {
+                console.warn('[Store] SDK timed out, switching to REST API');
+                setUseRest(true);
+                // Clean up SDK listeners
+                if (unsubItems) unsubItems();
+                if (unsubCategories) unsubCategories();
+                if (unsubTxns) unsubTxns();
+                // Fetch via REST
+                await fetchAllViaRest();
+            }
+        }, 5000);
 
-    const addItem = async (newItem) => {
+        // Try SDK listeners
         try {
-            await addDoc(collection(db, 'items'), {
-                ...newItem,
-                stock: Number(newItem.stock) || 0,
-                reorderLevel: Number(newItem.reorderLevel) || 0,
-                createdAt: new Date().toISOString(),
+            unsubItems = onSnapshot(collection(db, 'items'), (snapshot) => {
+                sdkWorked = true;
+                clearTimeout(sdkTimeout);
+                const itemsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                setItems(itemsData);
+            });
+
+            unsubCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
+                const catData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                setCategories(catData);
+            });
+
+            const txnQuery = query(collection(db, 'transactions'), orderBy('date', 'desc'));
+            unsubTxns = onSnapshot(txnQuery, (snapshot) => {
+                const txnData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                setTransactions(txnData);
+                setDataLoading(false);
             });
         } catch (error) {
-            console.error('Error adding item:', error);
-            throw error;
+            console.error('[Store] SDK listener error:', error);
+            setUseRest(true);
+            fetchAllViaRest();
         }
-    };
 
-    const addTransaction = async (transactionData) => {
+        return () => {
+            clearTimeout(sdkTimeout);
+            if (unsubItems) unsubItems();
+            if (unsubCategories) unsubCategories();
+            if (unsubTxns) unsubTxns();
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
+
+    const fetchAllViaRest = useCallback(async () => {
+        if (!user) return;
+        try {
+            setDataLoading(true);
+            const idToken = await user.getIdToken();
+
+            const [itemsData, catData, txnData] = await Promise.all([
+                listDocuments('items', idToken),
+                listDocuments('categories', idToken),
+                listDocuments('transactions', idToken),
+            ]);
+
+            setItems(itemsData || []);
+            setCategories(catData || []);
+            // Sort transactions by date descending (client-side)
+            const sortedTxns = (txnData || []).sort((a, b) =>
+                (b.date || '').localeCompare(a.date || '')
+            );
+            setTransactions(sortedTxns);
+            setDataLoading(false);
+            console.log('[Store] Data loaded via REST API');
+        } catch (error) {
+            console.error('[Store] REST API fetch error:', error);
+            setDataLoading(false);
+        }
+    }, [user]);
+
+    const addItem = useCallback(async (newItem) => {
+        const itemData = {
+            ...newItem,
+            stock: Number(newItem.stock) || 0,
+            reorderLevel: Number(newItem.reorderLevel) || 0,
+            createdAt: new Date().toISOString(),
+        };
+
+        if (useRest && user) {
+            const idToken = await user.getIdToken();
+            const result = await addDocRest('items', itemData, idToken);
+            setItems(prev => [...prev, result]);
+            return result;
+        } else {
+            await addDoc(collection(db, 'items'), itemData);
+        }
+    }, [useRest, user]);
+
+    const addTransaction = useCallback(async (transactionData) => {
         const { itemId, type, quantity } = transactionData;
         const qty = Number(quantity);
 
-        // Find the item
         const item = items.find(i => i.id === itemId);
         if (!item) throw new Error("Item not found");
 
@@ -88,32 +141,30 @@ export const StoreProvider = ({ children }) => {
             throw new Error(`Cannot issue ${qty}. Only ${currentStock} available.`);
         }
 
-        // Calculate new stock
         const newStock = type === 'IN' ? currentStock + qty : currentStock - qty;
+        const txnRecord = {
+            ...transactionData,
+            quantity: qty,
+            date: new Date().toISOString(),
+            user: userProfile?.name || 'Unknown',
+        };
 
-        try {
-            // Use batch write: update item stock + record transaction
+        if (useRest && user) {
+            const idToken = await user.getIdToken();
+            await updateDocument(`items/${itemId}`, { stock: newStock }, idToken);
+            const result = await addDocRest('transactions', txnRecord, idToken);
+            // Update local state
+            setItems(prev => prev.map(i => i.id === itemId ? { ...i, stock: newStock } : i));
+            setTransactions(prev => [result, ...prev]);
+        } else {
             const batch = writeBatch(db);
-
-            // Update item stock
             const itemRef = doc(db, 'items', itemId);
             batch.update(itemRef, { stock: newStock });
-
-            // Add transaction record
             const txnRef = doc(collection(db, 'transactions'));
-            batch.set(txnRef, {
-                ...transactionData,
-                quantity: qty,
-                date: new Date().toISOString(),
-                user: userProfile?.name || 'Unknown',
-            });
-
+            batch.set(txnRef, txnRecord);
             await batch.commit();
-        } catch (error) {
-            console.error('Error adding transaction:', error);
-            throw error;
         }
-    };
+    }, [items, userProfile, useRest, user]);
 
     const value = {
         items,
@@ -122,6 +173,7 @@ export const StoreProvider = ({ children }) => {
         dataLoading,
         addItem,
         addTransaction,
+        refreshData: fetchAllViaRest,
     };
 
     return (
