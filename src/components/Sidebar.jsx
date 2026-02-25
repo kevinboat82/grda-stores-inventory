@@ -48,10 +48,19 @@ const Sidebar = () => {
 
     return (
         <>
-            {/* Mobile hamburger button */}
-            <button className="mobile-menu-btn" onClick={() => setIsOpen(true)} aria-label="Open menu">
-                <Menu size={24} />
-            </button>
+            {/* ===== MOBILE TOP BAR ===== */}
+            <header className="mobile-topbar">
+                <button className="mobile-topbar-menu" onClick={() => setIsOpen(true)} aria-label="Open menu">
+                    <Menu size={22} />
+                </button>
+                <div className="mobile-topbar-brand">
+                    <img src="/grda-logo.png" className="mobile-topbar-logo" alt="GRDA" />
+                    <span className="mobile-topbar-title">GRDA Stores</span>
+                </div>
+                <div className="mobile-topbar-avatar">
+                    {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : '?'}
+                </div>
+            </header>
 
             {/* Overlay */}
             {isOpen && <div className="sidebar-overlay" onClick={() => setIsOpen(false)} />}

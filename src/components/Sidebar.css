@@ -48,7 +48,7 @@
     color: var(--text-muted);
 }
 
-/* Close button inside sidebar - hidden on desktop */
+/* Close button inside sidebar — hidden on desktop */
 .sidebar-close-btn {
     display: none;
     background: none;
@@ -152,25 +152,11 @@
     color: #ff6b7a;
 }
 
-/* Mobile hamburger button - hidden on desktop */
-.mobile-menu-btn {
+/* ==============================
+   MOBILE TOP BAR — hidden on desktop
+   ============================== */
+.mobile-topbar {
     display: none;
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    z-index: 50;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 0.5rem;
-    padding: 0.5rem;
-    box-shadow: var(--shadow-md);
-    cursor: pointer;
-    transition: all var(--transition);
-}
-
-.mobile-menu-btn:hover {
-    background: var(--primary-hover);
 }
 
 /* Overlay backdrop */
@@ -191,10 +177,73 @@
    MOBILE: ≤ 768px
    ============================== */
 @media (max-width: 768px) {
-    .mobile-menu-btn {
+
+    /* Top bar */
+    .mobile-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 56px;
+        background: var(--primary);
+        color: white;
+        padding: 0 0.75rem;
+        z-index: 30;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .mobile-topbar-menu {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: white;
+        border-radius: 0.5rem;
+        padding: 0.45rem;
         display: flex;
         align-items: center;
         justify-content: center;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .mobile-topbar-menu:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .mobile-topbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .mobile-topbar-logo {
+        height: 32px;
+        width: 32px;
+        object-fit: contain;
+        background: white;
+        border-radius: 0.375rem;
+        padding: 2px;
+    }
+
+    .mobile-topbar-title {
+        font-weight: 700;
+        font-size: 1rem;
+        letter-spacing: -0.01em;
+    }
+
+    .mobile-topbar-avatar {
+        width: 32px;
+        height: 32px;
+        background: var(--warning);
+        color: var(--text-primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
     }
 
     .sidebar-close-btn {

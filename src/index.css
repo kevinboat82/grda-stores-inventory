@@ -464,7 +464,8 @@ textarea {
   .main-content {
     margin-left: 0;
     padding: 1rem;
-    padding-top: 4rem;
+    padding-top: calc(56px + 1rem);
+    /* mobile topbar height + spacing */
   }
 
   .page-header {
@@ -550,7 +551,7 @@ textarea {
 @media (max-width: 480px) {
   .main-content {
     padding: 0.5rem;
-    padding-top: 3.5rem;
+    padding-top: calc(56px + 0.5rem);
   }
 
   .page-title {
