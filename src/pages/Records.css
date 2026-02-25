@@ -478,3 +478,50 @@
         height: 350px;
     }
 }
+
+/* ================================
+   RESPONSIVE: SMALL MOBILE (≤ 480px)
+   ================================ */
+@media (max-width: 480px) {
+    .records-kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .records-kpi-card {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    .records-kpi-icon {
+        width: 2rem;
+        height: 2rem;
+        min-width: 2rem;
+    }
+
+    .records-kpi-icon svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .records-kpi-value {
+        font-size: 1rem;
+    }
+
+    .records-kpi-label {
+        font-size: 0.6rem;
+    }
+
+    .letter-subject {
+        max-width: 120px;
+    }
+
+    .type-btn {
+        font-size: 0.75rem;
+        padding: 0.6rem 0.75rem;
+    }
+
+    .pdf-viewer {
+        height: 250px;
+    }
+}
