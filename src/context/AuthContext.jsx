@@ -57,13 +57,14 @@ export const AuthProvider = ({ children }) => {
 
                     console.log('[Auth] User profile loaded:', profile.email, 'Role:', profile.role);
                 } else {
-                    console.warn('[Auth] No user profile found for UID:', firebaseUser.uid);
-                    profile = {
-                        name: '',
-                        role: 'none',
-                        email: firebaseUser.email,
-                        isActive: true,
-                    };
+                    // Could not reach Firestore or profile doesn't exist — sign out
+                    // A fresh login will re-establish the connection properly
+                    console.warn('[Auth] Could not load profile, signing out for fresh login');
+                    await signOut(auth);
+                    setUser(null);
+                    setUserProfile(null);
+                    setLoading(false);
+                    return;
                 }
                 // Update all state together
                 setUserProfile(profile);
