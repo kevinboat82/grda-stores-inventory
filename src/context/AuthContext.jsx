@@ -7,6 +7,21 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+// Helper: fetch user profile with retry logic for network resilience
+const fetchUserProfile = async (uid, maxRetries = 3) => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const userDoc = await getDoc(doc(db, 'users', uid));
+            return userDoc;
+        } catch (error) {
+            console.warn(`[Auth] Profile fetch attempt ${attempt}/${maxRetries} failed:`, error.message);
+            if (attempt === maxRetries) throw error;
+            // Wait before retrying (500ms, 1000ms, 1500ms)
+            await new Promise(resolve => setTimeout(resolve, attempt * 500));
+        }
+    }
+};
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(undefined); // undefined = not yet checked
     const [userProfile, setUserProfile] = useState(null);
@@ -18,7 +33,7 @@ export const AuthProvider = ({ children }) => {
                 // Fetch profile BEFORE updating any state
                 let profile = null;
                 try {
-                    const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+                    const userDoc = await fetchUserProfile(firebaseUser.uid);
                     if (userDoc.exists()) {
                         profile = userDoc.data();
 
@@ -43,7 +58,7 @@ export const AuthProvider = ({ children }) => {
                         };
                     }
                 } catch (error) {
-                    console.error('[Auth] Error fetching user profile:', error);
+                    console.error('[Auth] Error fetching user profile after retries:', error);
                     profile = {
                         name: '',
                         role: 'none',
