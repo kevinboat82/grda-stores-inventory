@@ -18,6 +18,7 @@ import Alerts from './pages/Alerts';
 import RecordsDashboard from './pages/RecordsDashboard';
 import LetterUpload from './pages/LetterUpload';
 import LetterView from './pages/LetterView';
+import UserManagement from './pages/UserManagement';
 import Unauthorized from './pages/Unauthorized';
 
 // Home route renders different dashboards based on role
@@ -97,6 +98,9 @@ const AppRoutes = () => {
           <Route path="/receive" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><StockIn /></ProtectedRoute>} />
           <Route path="/issue" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><StockOut /></ProtectedRoute>} />
           <Route path="/alerts" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><Alerts /></ProtectedRoute>} />
+
+          {/* Admin routes */}
+          <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
 
           {/* Records routes */}
           <Route path="/records" element={<ProtectedRoute allowedRoles={['admin', 'records_unit']}><RecordsDashboard /></ProtectedRoute>} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BarChart3, LogOut, Menu, X, FileText, Upload } from 'lucide-react';
+import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BarChart3, LogOut, Menu, X, FileText, Upload, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
@@ -113,13 +113,17 @@ const Sidebar = () => {
                                 <span>Low Stock Alerts</span>
                             </NavLink>
 
-                            {/* Admin also sees Records */}
+                            {/* Admin specific links */}
                             {userRole === 'admin' && (
                                 <>
                                     <div className="nav-divider"></div>
+                                    <NavLink to="/users" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                        <Users size={20} />
+                                        <span>User Management</span>
+                                    </NavLink>
                                     <NavLink to="/records" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                         <FileText size={20} />
-                                        <span>Records</span>
+                                        <span>Records Module</span>
                                     </NavLink>
                                 </>
                             )}

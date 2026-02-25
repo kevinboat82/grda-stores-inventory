@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { auth, adminAuth, db } from '../firebase';
 
 const AuthContext = createContext();
 
@@ -21,6 +21,17 @@ export const AuthProvider = ({ children }) => {
                     const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                     if (userDoc.exists()) {
                         profile = userDoc.data();
+
+                        // Check if account is deactivated
+                        if (profile.isActive === false) {
+                            console.warn('[Auth] Account is deactivated:', firebaseUser.uid);
+                            await signOut(auth);
+                            setUser(null);
+                            setUserProfile(null);
+                            setLoading(false);
+                            return; // Stop here
+                        }
+
                         console.log('[Auth] User profile loaded:', profile.email, 'Role:', profile.role);
                     } else {
                         console.warn('[Auth] No user profile found for UID:', firebaseUser.uid);
@@ -28,6 +39,7 @@ export const AuthProvider = ({ children }) => {
                             name: '',
                             role: 'none',
                             email: firebaseUser.email,
+                            isActive: true, // default to true if missing
                         };
                     }
                 } catch (error) {
@@ -36,6 +48,7 @@ export const AuthProvider = ({ children }) => {
                         name: '',
                         role: 'none',
                         email: firebaseUser.email,
+                        isActive: true,
                     };
                 }
                 // Update all state together
@@ -67,6 +80,46 @@ export const AuthProvider = ({ children }) => {
         setUserProfile(prev => ({ ...prev, ...updates }));
     }, [user]);
 
+    // Admin functions for User Management
+    const adminCreateUser = useCallback(async (email, password, role, position, name) => {
+        if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
+
+        // 1. Create the user in the secondary adminApp Firebase auth instance
+        // This prevents the current admin user from being signed out.
+        const userCredential = await createUserWithEmailAndPassword(adminAuth, email, password);
+        const newUid = userCredential.user.uid;
+
+        // 2. Create the Firestore profile
+        const newUserProfile = {
+            email,
+            role,
+            position: position || '',
+            name: name || '',
+            isActive: true,
+            createdAt: new Date().toISOString()
+        };
+
+        await setDoc(doc(db, 'users', newUid), newUserProfile);
+
+        // 3. Promptly sign out of the secondary app so it stays clean
+        await signOut(adminAuth);
+
+        return { uid: newUid, ...newUserProfile };
+    }, [userProfile]);
+
+    const updateUserRole = useCallback(async (uid, newRole) => {
+        if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
+        const userRef = doc(db, 'users', uid);
+        await updateDoc(userRef, { role: newRole });
+    }, [userProfile]);
+
+    const toggleUserStatus = useCallback(async (uid, currentIsActive) => {
+        if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
+        const userRef = doc(db, 'users', uid);
+        await updateDoc(userRef, { isActive: !currentIsActive });
+    }, [userProfile]);
+
+
     // Whether the user still needs to complete profile setup
     const needsProfileSetup = userProfile
         && userProfile.role !== 'audit_unit'
@@ -81,6 +134,9 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         updateProfile,
+        adminCreateUser,
+        updateUserRole,
+        toggleUserStatus
     };
 
     return (
