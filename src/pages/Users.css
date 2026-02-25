@@ -7,6 +7,8 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .users-title {
@@ -14,87 +16,139 @@
     font-weight: 700;
 }
 
-/* Modal Styles */
-.modal-overlay {
+/* ==========================================
+   User Management Modal (um- prefix to avoid
+   conflicts with global modal styles)
+   ========================================== */
+.um-modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 9999;
+    padding: 1rem;
 }
 
-.modal-content {
-    background: var(--bg-card);
+.um-modal-content {
+    background: #ffffff;
     width: 100%;
-    max-width: 500px;
+    max-width: 480px;
     border-radius: 1rem;
-    box-shadow: var(--shadow-xl);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     padding: 2rem;
     position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: umSlideUp 0.25s ease-out;
 }
 
-.modal-title {
-    font-size: 1.25rem;
-    font-weight: 600;
+@keyframes umSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.um-modal-title {
+    font-size: 1.2rem;
+    font-weight: 700;
     margin-bottom: 1.5rem;
     color: var(--text-primary);
+    padding-right: 2rem;
 }
 
-.modal-close-btn {
+.um-modal-close {
     position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
+    top: 1.25rem;
+    right: 1.25rem;
     background: none;
     border: none;
     color: var(--text-muted);
     cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
 }
 
-.modal-close-btn:hover {
-    color: var(--text-primary);
+.um-modal-close:hover {
+    color: var(--danger);
+    background: var(--danger-bg);
 }
 
-.form-group {
+/* Form styles */
+.um-form-group {
     margin-bottom: 1.25rem;
 }
 
-.form-label {
+.um-form-label {
     display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
     color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
-.form-input,
-.form-select {
+.um-form-input {
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0.7rem 0.875rem;
     background: var(--bg-main);
     border: 1px solid var(--border-color);
     border-radius: 0.5rem;
     color: var(--text-primary);
     font-size: 0.95rem;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
-.form-input:focus,
-.form-select:focus {
+.um-form-input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(0, 81, 81, 0.1);
+    box-shadow: 0 0 0 3px rgba(0, 118, 60, 0.1);
 }
 
-.modal-actions {
+.um-form-input::placeholder {
+    color: var(--text-muted);
+}
+
+.um-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.um-modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 2rem;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.um-alert-error {
+    background: var(--danger-bg);
+    color: var(--danger);
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid rgba(227, 24, 55, 0.15);
 }
 
 /* User Status Badges */
@@ -117,21 +171,26 @@
     opacity: 0.6;
 }
 
-.action-menu-container {
-    position: relative;
-    display: inline-block;
-}
+/* Responsive: stack form row on small screens */
+@media (max-width: 768px) {
+    .um-form-row {
+        grid-template-columns: 1fr;
+    }
 
-.action-menu-btn {
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 0.25rem;
-}
+    .um-modal-content {
+        max-width: 100%;
+        border-radius: 1rem 1rem 0 0;
+        margin: 0;
+        max-height: 85vh;
+    }
 
-.action-menu-btn:hover {
-    background: var(--bg-main);
-    color: var(--text-primary);
+    .um-modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .users-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }

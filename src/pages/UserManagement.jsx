@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { collection, query, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { listDocuments } from '../utils/firestoreRest';
 import { Plus, X, UserCheck, UserX, Shield, Edit2, Loader } from 'lucide-react';
 import './Users.css';
 
@@ -28,7 +27,7 @@ const ROLES = [
 ];
 
 export default function UserManagement() {
-    const { adminCreateUser, updateUserRole, toggleUserStatus } = useAuth();
+    const { user, adminCreateUser, updateUserRole, toggleUserStatus } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -48,25 +47,23 @@ export default function UserManagement() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState('');
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
+        if (!user) return;
         try {
-            const q = query(collection(db, 'users'));
-            const querySnapshot = await getDocs(q);
-            const userList = [];
-            querySnapshot.forEach((doc) => {
-                userList.push({ uid: doc.id, ...doc.data() });
-            });
-            setUsers(userList);
+            const idToken = await user.getIdToken();
+            const userList = await listDocuments('users', idToken);
+            // Map 'id' to 'uid' for consistency
+            setUsers(userList.map(u => ({ ...u, uid: u.id })));
         } catch (err) {
             console.error("Error fetching users: ", err);
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
 
     useEffect(() => {
         fetchUsers();
-    }, []);
+    }, [fetchUsers]);
 
     const handleAddUser = async (e) => {
         e.preventDefault();
@@ -82,7 +79,7 @@ export default function UserManagement() {
             );
             setShowAddModal(false);
             setFormData({ email: '', password: '', name: '', position: '', role: 'none' });
-            fetchUsers(); // Refresh list
+            fetchUsers();
         } catch (err) {
             setError(err.message || 'Failed to create user');
         } finally {
@@ -106,20 +103,20 @@ export default function UserManagement() {
         }
     };
 
-    const handleToggleStatus = async (user) => {
-        if (!window.confirm(`Are you sure you want to ${user.isActive === false ? 'reactivate' : 'deactivate'} this account?`)) return;
+    const handleToggleStatus = async (targetUser) => {
+        if (!window.confirm(`Are you sure you want to ${targetUser.isActive === false ? 'reactivate' : 'deactivate'} this account?`)) return;
 
         try {
-            await toggleUserStatus(user.uid, user.isActive !== false); // Handle undefined as true
+            await toggleUserStatus(targetUser.uid, targetUser.isActive !== false);
             fetchUsers();
         } catch (err) {
             alert('Failed to update status: ' + err.message);
         }
     };
 
-    const openEditModal = (user) => {
-        setSelectedUser(user);
-        setFormData({ ...formData, role: user.role });
+    const openEditModal = (targetUser) => {
+        setSelectedUser(targetUser);
+        setFormData({ ...formData, role: targetUser.role });
         setShowEditModal(true);
     };
 
@@ -142,6 +139,7 @@ export default function UserManagement() {
                     className="btn btn-primary"
                     onClick={() => {
                         setFormData({ email: '', password: '', name: '', position: '', role: 'none' });
+                        setError('');
                         setShowAddModal(true);
                     }}
                     style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -178,7 +176,7 @@ export default function UserManagement() {
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                 <Shield size={14} color="var(--primary)" />
-                                                <span className="capitalize">{u.role.replace('_', ' ')}</span>
+                                                <span className="capitalize">{(u.role || '').replace('_', ' ')}</span>
                                             </div>
                                         </td>
                                         <td>
@@ -222,71 +220,76 @@ export default function UserManagement() {
 
             {/* Add User Modal */}
             {showAddModal && (
-                <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <button className="modal-close-btn" onClick={() => setShowAddModal(false)}>
-                            <X size={24} />
+                <div className="um-modal-overlay" onClick={() => setShowAddModal(false)}>
+                    <div className="um-modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="um-modal-close" onClick={() => setShowAddModal(false)}>
+                            <X size={20} />
                         </button>
-                        <h2 className="modal-title">Add New User</h2>
+                        <h2 className="um-modal-title">Add New User</h2>
 
-                        {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+                        {error && <div className="um-alert-error">{error}</div>}
 
                         <form onSubmit={handleAddUser}>
-                            <div className="form-group">
-                                <label className="form-label">Full Name</label>
+                            <div className="um-form-group">
+                                <label className="um-form-label">Full Name</label>
                                 <input
                                     type="text"
-                                    className="form-input"
+                                    className="um-form-input"
                                     required
+                                    placeholder="e.g. John Doe"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Email Address</label>
+                            <div className="um-form-group">
+                                <label className="um-form-label">Email Address</label>
                                 <input
                                     type="email"
-                                    className="form-input"
+                                    className="um-form-input"
                                     required
+                                    placeholder="e.g. john@grda.gov.gh"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Temporary Password</label>
+                            <div className="um-form-group">
+                                <label className="um-form-label">Temporary Password</label>
                                 <input
                                     type="text"
-                                    className="form-input"
+                                    className="um-form-input"
                                     required
                                     minLength="6"
+                                    placeholder="Min. 6 characters"
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">Position / Title</label>
-                                <select
-                                    className="form-select"
-                                    required
-                                    value={formData.position}
-                                    onChange={e => setFormData({ ...formData, position: e.target.value })}
-                                >
-                                    <option value="">Select official position...</option>
-                                    {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
-                                </select>
+                            <div className="um-form-row">
+                                <div className="um-form-group">
+                                    <label className="um-form-label">Position / Title</label>
+                                    <select
+                                        className="um-form-input"
+                                        required
+                                        value={formData.position}
+                                        onChange={e => setFormData({ ...formData, position: e.target.value })}
+                                    >
+                                        <option value="">Select position...</option>
+                                        {POSITIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                                    </select>
+                                </div>
+                                <div className="um-form-group">
+                                    <label className="um-form-label">System Role</label>
+                                    <select
+                                        className="um-form-input"
+                                        required
+                                        value={formData.role}
+                                        onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                    >
+                                        {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                                    </select>
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label className="form-label">System Access Role</label>
-                                <select
-                                    className="form-select"
-                                    required
-                                    value={formData.role}
-                                    onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                >
-                                    {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                                </select>
-                            </div>
-                            <div className="modal-actions">
+                            <div className="um-modal-actions">
                                 <button type="button" className="btn btn-outline" onClick={() => setShowAddModal(false)} disabled={submitting}>
                                     Cancel
                                 </button>
@@ -301,20 +304,20 @@ export default function UserManagement() {
 
             {/* Edit Role Modal */}
             {showEditModal && selectedUser && (
-                <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <button className="modal-close-btn" onClick={() => setShowEditModal(false)}>
-                            <X size={24} />
+                <div className="um-modal-overlay" onClick={() => setShowEditModal(false)}>
+                    <div className="um-modal-content" onClick={e => e.stopPropagation()}>
+                        <button className="um-modal-close" onClick={() => setShowEditModal(false)}>
+                            <X size={20} />
                         </button>
-                        <h2 className="modal-title">Edit Role for {selectedUser.name || selectedUser.email}</h2>
+                        <h2 className="um-modal-title">Edit Role for {selectedUser.name || selectedUser.email}</h2>
 
-                        {error && <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>{error}</div>}
+                        {error && <div className="um-alert-error">{error}</div>}
 
                         <form onSubmit={handleEditRole}>
-                            <div className="form-group">
-                                <label className="form-label">System Access Role</label>
+                            <div className="um-form-group">
+                                <label className="um-form-label">System Access Role</label>
                                 <select
-                                    className="form-select"
+                                    className="um-form-input"
                                     required
                                     value={formData.role}
                                     onChange={e => setFormData({ ...formData, role: e.target.value })}
@@ -322,7 +325,7 @@ export default function UserManagement() {
                                     {ROLES.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
                                 </select>
                             </div>
-                            <div className="modal-actions">
+                            <div className="um-modal-actions">
                                 <button type="button" className="btn btn-outline" onClick={() => setShowEditModal(false)} disabled={submitting}>
                                     Cancel
                                 </button>
