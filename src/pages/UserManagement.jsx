@@ -5,22 +5,15 @@ import { Plus, X, UserCheck, UserX, Shield, Edit2, Loader } from 'lucide-react';
 import './Users.css';
 
 const POSITIONS = [
-    'CEO / Managing Director',
+    'HOD (Admin)',
     'Store Manager',
-    'Storekeeper',
-    'Audit Officer',
-    'Head of Department (HOD)',
-    'Administrative Officer',
-    'IT Administrator',
-    'General Staff',
-    'Records Officer',
-    'Registry Clerk',
-    'Filing Officer'
+    'Audit',
+    'Records'
 ];
 
 const ROLES = [
-    { id: 'admin', label: 'Store Manager (Admin)' },
-    { id: 'storekeeper', label: 'Storekeeper' },
+    { id: 'admin', label: 'HOD (Admin)' },
+    { id: 'store_manager', label: 'Store Manager' },
     { id: 'audit_unit', label: 'Audit Unit' },
     { id: 'records_unit', label: 'Records Unit' },
     { id: 'none', label: 'No Access' }

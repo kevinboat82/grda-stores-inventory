@@ -76,7 +76,7 @@ const AppRoutes = () => {
 
   // Determine which provider(s) to wrap based on role
   const isRecordsUser = userRole === 'records_unit';
-  const isStoresUser = ['admin', 'storekeeper', 'audit_unit'].includes(userRole);
+  const isStoresUser = ['admin', 'store_manager', 'audit_unit'].includes(userRole);
 
   const renderRoutes = (
     <div className="app-layout">
@@ -87,17 +87,17 @@ const AppRoutes = () => {
           <Route
             path="/"
             element={
-              <ProtectedRoute allowedRoles={['admin', 'storekeeper', 'audit_unit', 'records_unit']}>
+              <ProtectedRoute allowedRoles={['admin', 'store_manager', 'audit_unit', 'records_unit']}>
                 <HomeRoute />
               </ProtectedRoute>
             }
           />
 
           {/* Stores routes */}
-          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><Inventory /></ProtectedRoute>} />
-          <Route path="/receive" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><StockIn /></ProtectedRoute>} />
-          <Route path="/issue" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><StockOut /></ProtectedRoute>} />
-          <Route path="/alerts" element={<ProtectedRoute allowedRoles={['admin', 'storekeeper']}><Alerts /></ProtectedRoute>} />
+          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['admin', 'store_manager']}><Inventory /></ProtectedRoute>} />
+          <Route path="/receive" element={<ProtectedRoute allowedRoles={['admin', 'store_manager']}><StockIn /></ProtectedRoute>} />
+          <Route path="/issue" element={<ProtectedRoute allowedRoles={['admin', 'store_manager']}><StockOut /></ProtectedRoute>} />
+          <Route path="/alerts" element={<ProtectedRoute allowedRoles={['admin', 'store_manager']}><Alerts /></ProtectedRoute>} />
 
           {/* Admin routes */}
           <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />

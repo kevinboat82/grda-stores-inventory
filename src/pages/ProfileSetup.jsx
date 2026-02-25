@@ -4,18 +4,10 @@ import { User, Briefcase, CheckCircle2 } from 'lucide-react';
 import './Login.css';
 
 const POSITIONS = [
+    'HOD (Admin)',
     'Store Manager',
-    'Store Officer',
-    'Store Keeper',
-    'Assistant Store Keeper',
-    'Procurement Officer',
-    'Administrative Officer',
-    'Logistics Officer',
-    'Inventory Clerk',
-    'Supply Chain Officer',
-    'Records Officer',
-    'Registry Clerk',
-    'Filing Officer',
+    'Audit',
+    'Records',
 ];
 
 const ProfileSetup = () => {
@@ -142,7 +134,7 @@ const ProfileSetup = () => {
                         marginBottom: '0.5rem',
                     }}>
                         <strong>Your email:</strong> {userProfile?.email}<br />
-                        <strong>Role:</strong> {userProfile?.role === 'admin' ? 'Store Manager (Admin)' : userProfile?.role === 'records_unit' ? 'Records Unit' : 'Storekeeper'}
+                        <strong>Role:</strong> {userProfile?.role === 'admin' ? 'HOD (Admin)' : userProfile?.role === 'store_manager' ? 'Store Manager' : userProfile?.role === 'audit_unit' ? 'Audit Unit' : userProfile?.role === 'records_unit' ? 'Records Unit' : userProfile?.role}
                     </div>
 
                     <button

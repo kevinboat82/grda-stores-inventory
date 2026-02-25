@@ -38,10 +38,10 @@ const Sidebar = () => {
 
     const getRoleLabel = (role) => {
         switch (role) {
-            case 'admin': return 'Store Manager';
+            case 'admin': return 'HOD (Admin)';
+            case 'store_manager': return 'Store Manager';
             case 'audit_unit': return 'Audit Unit';
             case 'records_unit': return 'Records Unit';
-            case 'storekeeper': return 'Storekeeper';
             default: return role;
         }
     };
@@ -90,7 +90,7 @@ const Sidebar = () => {
                             </NavLink>
                         </>
                     ) : (
-                        /* Admin / Storekeeper */
+                        /* Admin / Store Manager */
                         <>
                             <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
                                 <LayoutDashboard size={20} />
