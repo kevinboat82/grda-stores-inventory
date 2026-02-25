@@ -172,3 +172,16 @@ export const updateDocument = async (path, data, idToken) => {
     }
     return await response.json();
 };
+
+/**
+ * Delete a document by path.
+ */
+export const deleteDocument = async (path, idToken) => {
+    const response = await fetch(`${BASE_URL}/${path}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${idToken}` },
+    });
+    if (!response.ok && response.status !== 404) {
+        throw new Error(`Firestore REST error: ${response.status} ${response.statusText}`);
+    }
+};

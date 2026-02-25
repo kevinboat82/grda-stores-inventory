@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
 import { auth, adminAuth } from '../firebase';
-import { getDocument, setDocument, updateDocument } from '../utils/firestoreRest';
+import { getDocument, setDocument, updateDocument, deleteDocument } from '../utils/firestoreRest';
 
 const AuthContext = createContext();
 
@@ -144,6 +144,12 @@ export const AuthProvider = ({ children }) => {
         await updateDocument(`users/${uid}`, { isActive: !currentIsActive }, idToken);
     }, [user, userProfile]);
 
+    const deleteUser = useCallback(async (uid) => {
+        if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
+        const idToken = await user.getIdToken();
+        await deleteDocument(`users/${uid}`, idToken);
+    }, [user, userProfile]);
+
     const changePassword = useCallback(async (newPassword) => {
         if (!user) throw new Error('Not authenticated');
         // Update Firebase Auth password
@@ -173,7 +179,8 @@ export const AuthProvider = ({ children }) => {
         changePassword,
         adminCreateUser,
         updateUserRole,
-        toggleUserStatus
+        toggleUserStatus,
+        deleteUser
     };
 
     return (

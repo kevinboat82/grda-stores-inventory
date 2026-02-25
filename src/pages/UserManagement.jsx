@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { listDocuments } from '../utils/firestoreRest';
-import { Plus, X, UserCheck, UserX, Shield, Edit2, Loader } from 'lucide-react';
+import { Plus, X, UserCheck, UserX, Shield, Edit2, Loader, Trash2 } from 'lucide-react';
 import './Users.css';
 
 const POSITIONS = [
@@ -20,7 +20,7 @@ const ROLES = [
 ];
 
 export default function UserManagement() {
-    const { user, adminCreateUser, updateUserRole, toggleUserStatus } = useAuth();
+    const { user, adminCreateUser, updateUserRole, toggleUserStatus, deleteUser } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -104,6 +104,17 @@ export default function UserManagement() {
             fetchUsers();
         } catch (err) {
             alert('Failed to update status: ' + err.message);
+        }
+    };
+
+    const handleDeleteUser = async (targetUser) => {
+        if (!window.confirm(`Are you sure you want to permanently delete ${targetUser.name || targetUser.email}? This cannot be undone.`)) return;
+
+        try {
+            await deleteUser(targetUser.uid);
+            fetchUsers();
+        } catch (err) {
+            alert('Failed to delete user: ' + err.message);
         }
     };
 
@@ -195,6 +206,14 @@ export default function UserManagement() {
                                                 >
                                                     {isActive ? <UserX size={12} /> : <UserCheck size={12} />}
                                                     {isActive ? 'Disable' : 'Enable'}
+                                                </button>
+                                                <button
+                                                    className="btn btn-outline"
+                                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)' }}
+                                                    onClick={() => handleDeleteUser(u)}
+                                                    title="Delete User"
+                                                >
+                                                    <Trash2 size={12} /> Delete
                                                 </button>
                                             </div>
                                         </td>
