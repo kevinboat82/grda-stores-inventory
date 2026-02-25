@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -12,19 +12,12 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Debug: verify config is loaded (remove after confirming)
-console.log('[Firebase] Config check:', {
-    apiKey: firebaseConfig.apiKey ? '✅ set' : '❌ MISSING',
-    authDomain: firebaseConfig.authDomain ? '✅ set' : '❌ MISSING',
-    projectId: firebaseConfig.projectId ? '✅ set' : '❌ MISSING',
-    storageBucket: firebaseConfig.storageBucket ? '✅ set' : '❌ MISSING',
-    messagingSenderId: firebaseConfig.messagingSenderId ? '✅ set' : '❌ MISSING',
-    appId: firebaseConfig.appId ? '✅ set' : '❌ MISSING',
-});
-
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Use initializeFirestore with long-polling fallback to avoid WebSocket blocking
+export const db = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+});
 export const storage = getStorage(app);
 
 // Secondary app instance just for creating new users without logging out the admin
