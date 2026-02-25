@@ -12,6 +12,16 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// Debug: verify config is loaded (remove after confirming)
+console.log('[Firebase] Config check:', {
+    apiKey: firebaseConfig.apiKey ? '✅ set' : '❌ MISSING',
+    authDomain: firebaseConfig.authDomain ? '✅ set' : '❌ MISSING',
+    projectId: firebaseConfig.projectId ? '✅ set' : '❌ MISSING',
+    storageBucket: firebaseConfig.storageBucket ? '✅ set' : '❌ MISSING',
+    messagingSenderId: firebaseConfig.messagingSenderId ? '✅ set' : '❌ MISSING',
+    appId: firebaseConfig.appId ? '✅ set' : '❌ MISSING',
+});
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
