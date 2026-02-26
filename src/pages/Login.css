@@ -1,9 +1,11 @@
+/* Login.css — Premium Login Page */
+
 .login-page {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #00763C 0%, #005A2D 50%, #003d1d 100%);
+    background: linear-gradient(135deg, #0a1628 0%, #0f1d2f 35%, #00763C 100%);
     padding: 1rem;
     position: relative;
     overflow: hidden;
@@ -12,48 +14,49 @@
 .login-page::before {
     content: '';
     position: absolute;
-    top: -50%;
-    right: -50%;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 0%, transparent 60%);
+    top: -40%;
+    right: -20%;
+    width: 60%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(0, 118, 60, 0.15) 0%, transparent 60%);
     pointer-events: none;
 }
 
 .login-page::after {
     content: '';
     position: absolute;
-    bottom: -30%;
-    left: -30%;
-    width: 80%;
-    height: 80%;
-    background: radial-gradient(circle, rgba(245, 166, 35, 0.08) 0%, transparent 60%);
+    bottom: -20%;
+    left: -10%;
+    width: 50%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(245, 166, 35, 0.06) 0%, transparent 60%);
     pointer-events: none;
 }
 
 .login-card {
     background: rgba(255, 255, 255, 0.97);
-    border-radius: 1rem;
+    border-radius: 1.25rem;
     padding: 2.5rem;
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
     box-shadow:
-        0 25px 50px -12px rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
-    animation: cardSlideUp 0.5s ease-out;
+        0 25px 60px -12px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    animation: cardSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
     z-index: 1;
+    backdrop-filter: blur(20px);
 }
 
 @keyframes cardSlideUp {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(24px) scale(0.97);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -63,34 +66,37 @@
 }
 
 .login-logo {
-    width: 72px;
-    height: 72px;
+    width: 64px;
+    height: 64px;
     object-fit: contain;
     margin-bottom: 1rem;
-    filter: drop-shadow(0 2px 8px rgba(0, 118, 60, 0.2));
+    filter: drop-shadow(0 4px 12px rgba(0, 118, 60, 0.15));
 }
 
 .login-title {
-    font-size: 1.5rem;
+    font-size: 1.375rem;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--text-primary);
     margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
 }
 
 .login-subtitle {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-weight: 400;
 }
 
 .login-error {
-    background: var(--danger-bg);
-    color: var(--danger);
-    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+    color: #b91c1c;
+    padding: 0.625rem 0.875rem;
     border-radius: 0.5rem;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     margin-bottom: 1.25rem;
-    border-left: 3px solid var(--danger);
+    border-left: 3px solid #dc2626;
     animation: shake 0.4s ease-in-out;
+    font-weight: 500;
 }
 
 @keyframes shake {
@@ -101,62 +107,111 @@
     }
 
     25% {
-        transform: translateX(-6px);
+        transform: translateX(-5px);
     }
 
     75% {
-        transform: translateX(6px);
+        transform: translateX(5px);
     }
 }
 
+.login-form .form-group {
+    margin-bottom: 1.125rem;
+}
+
+.login-form .form-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
 .login-form .form-control {
-    padding: 0.75rem 1rem;
-    font-size: 0.95rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.9375rem;
     border-radius: 0.5rem;
-    transition: all 0.2s ease;
+    border: 1px solid var(--border-color);
+    background: var(--bg-main);
+    transition: all 0.2s;
 }
 
 .login-form .form-control:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(0, 118, 60, 0.15);
+    box-shadow: 0 0 0 3px rgba(0, 118, 60, 0.08);
+    background: white;
 }
 
 .login-btn {
     width: 100%;
-    padding: 0.8rem;
-    font-size: 1rem;
+    padding: 0.6875rem;
+    font-size: 0.9375rem;
     font-weight: 600;
     border-radius: 0.5rem;
-    margin-top: 0.5rem;
-    transition: all 0.2s ease;
-    letter-spacing: 0.02em;
+    margin-top: 0.625rem;
+    transition: all 0.2s;
+    letter-spacing: 0.01em;
+    background: linear-gradient(135deg, #00763C 0%, #005A2D 100%);
+    box-shadow: 0 2px 6px rgba(0, 86, 45, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .login-btn:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 118, 60, 0.3);
+    box-shadow: 0 4px 14px rgba(0, 86, 45, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background: linear-gradient(135deg, #008a46 0%, #00763C 100%);
+}
+
+.login-btn:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .login-btn:disabled {
-    opacity: 0.7;
+    opacity: 0.65;
     cursor: not-allowed;
 }
 
 .login-footer {
     text-align: center;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-subtle);
 }
 
 .login-footer p {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     color: var(--text-muted);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
+    font-weight: 500;
 }
 
-/* Loading Screen */
+/* ==============================
+   RESPONSIVE: MOBILE (≤ 768px)
+   ============================== */
+@media (max-width: 768px) {
+    .login-card {
+        max-width: 100%;
+        padding: 2rem 1.5rem;
+        border-radius: 1rem;
+    }
+
+    .login-logo {
+        width: 56px;
+        height: 56px;
+    }
+
+    .login-title {
+        font-size: 1.25rem;
+    }
+
+    .login-form .form-control {
+        font-size: 16px;
+    }
+}
+
+/* ==============================
+   Loading screen
+   ============================== */
 .loading-screen {
     display: flex;
     flex-direction: column;
@@ -168,8 +223,8 @@
 }
 
 .loading-spinner {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border: 3px solid var(--border-color);
     border-top-color: var(--primary);
     border-radius: 50%;
@@ -183,6 +238,7 @@
 }
 
 .loading-screen p {
-    color: var(--text-secondary);
-    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-weight: 500;
 }
