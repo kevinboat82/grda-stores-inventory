@@ -64,11 +64,14 @@
 }
 
 .brand-logo {
-    width: 72px;
-    height: 72px;
+    width: 96px;
+    height: 96px;
     object-fit: contain;
     margin-bottom: 1.5rem;
-    filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3));
+    background: #ffffff;
+    border-radius: 1rem;
+    padding: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
 .brand-title {
@@ -289,8 +292,8 @@
     }
 
     .brand-logo {
-        width: 60px;
-        height: 60px;
+        width: 76px;
+        height: 76px;
     }
 }
 
@@ -327,9 +330,13 @@
     }
 
     .login-mobile-logo img {
-        width: 48px;
-        height: 48px;
+        width: 64px;
+        height: 64px;
         object-fit: contain;
+        background: #ffffff;
+        border-radius: 0.75rem;
+        padding: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     .login-title {
