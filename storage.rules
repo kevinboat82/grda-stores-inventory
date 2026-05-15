@@ -1,0 +1,37 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function userProfileExists() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid));
+    }
+
+    function userRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return userProfileExists() && userRole() in [
+        'admin', 'Admin', 'ADMIN', 'HOD (Admin)', 'superadmin', 'administrator',
+      ];
+    }
+
+    function hasRole(roles) {
+      return userProfileExists() && (userRole() in roles || (isAdmin() && roles.hasAny(['admin'])));
+    }
+
+    function canAccessCorrespondence() {
+      return hasRole([
+        'admin', 'records_unit', 'ceo_office', 'ceo',
+        'dept_estates', 'dept_it', 'dept_admin', 'dept_audit', 'dept_finance',
+        'dept_procurement', 'dept_hr', 'dept_projects', 'dept_pprme',
+      ]);
+    }
+
+    match /letters/{fileName} {
+      allow read: if canAccessCorrespondence();
+      allow write: if canAccessCorrespondence();
+    }
+  }
+}

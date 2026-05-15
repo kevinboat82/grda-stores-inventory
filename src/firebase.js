@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -14,8 +14,13 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-// Firestore SDK (used as primary locally, fallback on Vercel)
-export const db = getFirestore(app);
+
+// Long polling helps when WebChannel streams get reset (VPN, sleep, embedded browsers).
+const forceLongPolling = import.meta.env.VITE_FIRESTORE_FORCE_LONG_POLLING === 'true';
+export const db = initializeFirestore(app, {
+    experimentalForceLongPolling: forceLongPolling,
+    experimentalAutoDetectLongPolling: !forceLongPolling,
+});
 export const storage = getStorage(app);
 
 // Secondary app instance just for creating new users without logging out the admin

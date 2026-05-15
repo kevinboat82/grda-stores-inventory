@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { StoreProvider } from './context/StoreContext';
 import { RecordsProvider } from './context/RecordsContext';
+import { DEPARTMENT_ROLE_IDS } from './constants/departmentWorkflow';
 import ProtectedRoute from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import './App.css';
@@ -18,6 +19,11 @@ import Alerts from './pages/Alerts';
 import RecordsDashboard from './pages/RecordsDashboard';
 import LetterUpload from './pages/LetterUpload';
 import LetterView from './pages/LetterView';
+import CorrespondenceInbox from './pages/CorrespondenceInbox';
+import CorrespondenceArchive from './pages/CorrespondenceArchive';
+import DepartmentInbox from './pages/DepartmentInbox';
+import RaiseMemo from './pages/RaiseMemo';
+import AccountNeedsRole from './pages/AccountNeedsRole';
 import UserManagement from './pages/UserManagement';
 import ActivityLog from './pages/ActivityLog';
 import Unauthorized from './pages/Unauthorized';
@@ -26,8 +32,13 @@ import ChangePassword from './pages/ChangePassword';
 // Home route renders different dashboards based on role
 const HomeRoute = () => {
   const { userRole } = useAuth();
+  if (!userRole || userRole === 'none') {
+    return <AccountNeedsRole />;
+  }
   if (userRole === 'audit_unit') return <AuditDashboard />;
   if (userRole === 'records_unit') return <RecordsDashboard />;
+  if (userRole === 'ceo_office' || userRole === 'ceo') return <CorrespondenceInbox />;
+  if (DEPARTMENT_ROLE_IDS.includes(userRole)) return <DepartmentInbox />;
   return <Dashboard />;
 };
 
@@ -86,7 +97,12 @@ const AppRoutes = () => {
 
   // Determine which provider(s) to wrap based on role
   const isRecordsUser = userRole === 'records_unit';
+  const isExecutiveCorrespondence = userRole === 'ceo_office' || userRole === 'ceo';
+  const isDepartmentUser = DEPARTMENT_ROLE_IDS.includes(userRole);
   const isStoresUser = ['admin', 'store_manager', 'audit_unit'].includes(userRole);
+
+  const letterViewRoles = ['admin', 'records_unit', 'ceo_office', 'ceo', ...DEPARTMENT_ROLE_IDS];
+  const memoCreatorRoles = ['admin', 'records_unit', 'ceo_office', 'ceo', ...DEPARTMENT_ROLE_IDS];
 
   const renderRoutes = (
     <div className="app-layout">
@@ -97,7 +113,9 @@ const AppRoutes = () => {
           <Route
             path="/"
             element={
-              <ProtectedRoute allowedRoles={['admin', 'store_manager', 'audit_unit', 'records_unit']}>
+              <ProtectedRoute
+                allowedRoles={['admin', 'store_manager', 'audit_unit', 'records_unit', 'ceo_office', 'ceo', 'none', ...DEPARTMENT_ROLE_IDS]}
+              >
                 <HomeRoute />
               </ProtectedRoute>
             }
@@ -116,7 +134,17 @@ const AppRoutes = () => {
           {/* Records routes */}
           <Route path="/records" element={<ProtectedRoute allowedRoles={['admin', 'records_unit']}><RecordsDashboard /></ProtectedRoute>} />
           <Route path="/records/upload" element={<ProtectedRoute allowedRoles={['admin', 'records_unit']}><LetterUpload /></ProtectedRoute>} />
-          <Route path="/records/view/:id" element={<ProtectedRoute allowedRoles={['admin', 'records_unit']}><LetterView /></ProtectedRoute>} />
+          <Route path="/records/view/:id" element={<ProtectedRoute allowedRoles={letterViewRoles}><LetterView /></ProtectedRoute>} />
+          <Route path="/correspondence/raise-memo" element={<ProtectedRoute allowedRoles={memoCreatorRoles}><RaiseMemo /></ProtectedRoute>} />
+
+          <Route
+            path="/correspondence/archive"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'ceo_office', 'ceo']}>
+                <CorrespondenceArchive />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -126,7 +154,7 @@ const AppRoutes = () => {
   );
 
   // Wrap with appropriate context providers
-  if (isRecordsUser) {
+  if (isRecordsUser || isExecutiveCorrespondence || isDepartmentUser) {
     return <RecordsProvider>{renderRoutes}</RecordsProvider>;
   }
 

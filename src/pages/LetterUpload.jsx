@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, FileText, CheckCircle2, AlertTriangle, ArrowLeft, X } from 'lucide-react';
-import { useRecords, LETTER_CLASSIFICATIONS } from '../context/RecordsContext';
+import { useRecords, LETTER_CLASSIFICATIONS, CORRESPONDENCE_TYPES } from '../context/RecordsContext';
 import './Records.css';
 
 const LetterUpload = () => {
@@ -17,6 +17,7 @@ const LetterUpload = () => {
         referenceNo: '',
         letterDate: '',
         classification: '',
+        correspondenceType: 'letter_outside_company',
         notes: '',
     });
 
@@ -75,6 +76,10 @@ const LetterUpload = () => {
             setErrorMsg('Please select a classification.');
             return;
         }
+        if (!formData.correspondenceType) {
+            setErrorMsg('Please select how this item should appear in the correspondence register.');
+            return;
+        }
 
         setUploading(true);
         try {
@@ -82,7 +87,7 @@ const LetterUpload = () => {
             setSuccessMsg('Letter recorded successfully!');
             setFormData({
                 type: 'incoming', subject: '', sender: '', recipient: '',
-                referenceNo: '', letterDate: '', classification: '', notes: '',
+                referenceNo: '', letterDate: '', classification: '', correspondenceType: 'letter_outside_company', notes: '',
             });
             setSelectedFile(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -196,6 +201,24 @@ const LetterUpload = () => {
                                 type="date" name="letterDate" className="form-control"
                                 value={formData.letterDate} onChange={handleInputChange}
                             />
+                        </div>
+
+                        <div className="form-group">
+                            <label className="form-label">Correspondence register category *</label>
+                            <select
+                                required
+                                name="correspondenceType"
+                                className="form-control"
+                                value={formData.correspondenceType}
+                                onChange={handleInputChange}
+                            >
+                                {CORRESPONDENCE_TYPES.map((t) => (
+                                    <option key={t.id} value={t.id}>{t.label}</option>
+                                ))}
+                            </select>
+                            <p className="text-sm text-muted" style={{ marginTop: '0.35rem' }}>
+                                Used in the CEO archive view to group all past letters.
+                            </p>
                         </div>
 
                         <div className="form-group">

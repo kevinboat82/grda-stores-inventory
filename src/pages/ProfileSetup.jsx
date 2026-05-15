@@ -1,13 +1,19 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { User, Briefcase, CheckCircle2 } from 'lucide-react';
+import { ROUTING_DEPARTMENTS } from '../constants/departmentWorkflow';
 import './Login.css';
+
+const HOD_DEPARTMENT_POSITIONS = ROUTING_DEPARTMENTS.map((d) => `HOD — ${d.label}`);
 
 const POSITIONS = [
     'HOD (Admin)',
     'Store Manager',
     'Audit',
     'Records',
+    "CEO's Office (PA / Secretary)",
+    'Chief Executive',
+    ...HOD_DEPARTMENT_POSITIONS,
 ];
 
 const ProfileSetup = () => {
@@ -134,7 +140,19 @@ const ProfileSetup = () => {
                         marginBottom: '0.5rem',
                     }}>
                         <strong>Your email:</strong> {userProfile?.email}<br />
-                        <strong>Role:</strong> {userProfile?.role === 'admin' ? 'HOD (Admin)' : userProfile?.role === 'store_manager' ? 'Store Manager' : userProfile?.role === 'audit_unit' ? 'Audit Unit' : userProfile?.role === 'records_unit' ? 'Records Unit' : userProfile?.role}
+                        <strong>Role:</strong>{' '}
+                        {(() => {
+                            const r = userProfile?.role;
+                            const dept = ROUTING_DEPARTMENTS.find((d) => d.role === r);
+                            if (dept) return `HOD (${dept.label})`;
+                            if (r === 'admin') return 'HOD (Admin)';
+                            if (r === 'store_manager') return 'Store Manager';
+                            if (r === 'audit_unit') return 'Audit Unit';
+                            if (r === 'records_unit') return 'Records Unit';
+                            if (r === 'ceo_office') return "CEO's Office (PA / Secretary)";
+                            if (r === 'ceo') return 'Chief Executive';
+                            return r || '—';
+                        })()}
                     </div>
 
                     <button

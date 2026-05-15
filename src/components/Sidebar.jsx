@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BarChart3, LogOut, Menu, X, FileText, Upload, Users, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Package, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BarChart3, LogOut, Menu, X, FileText, Upload, Users, ClipboardList, UserCog, Archive, Inbox, PenLine } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { DEPARTMENT_ROLE_IDS, ROUTING_DEPARTMENTS } from '../constants/departmentWorkflow';
 import './Sidebar.css';
 
 const Sidebar = () => {
@@ -35,13 +36,21 @@ const Sidebar = () => {
 
     const isAuditUser = userRole === 'audit_unit';
     const isRecordsUser = userRole === 'records_unit';
+    const isExecutiveCorrespondence = userRole === 'ceo_office' || userRole === 'ceo';
+    const isDepartmentUser = DEPARTMENT_ROLE_IDS.includes(userRole);
+    const isCorrespondenceExperience = isExecutiveCorrespondence || isDepartmentUser;
+    const needsAccountRole = !userRole || userRole === 'none';
 
     const getRoleLabel = (role) => {
+        const deptRow = ROUTING_DEPARTMENTS.find((d) => d.role === role);
+        if (deptRow) return `HOD (${deptRow.label})`;
         switch (role) {
             case 'admin': return 'HOD (Admin)';
             case 'store_manager': return 'Store Manager';
             case 'audit_unit': return 'Audit Unit';
             case 'records_unit': return 'Records Unit';
+            case 'ceo_office': return "CEO's Office (PA / Secretary)";
+            case 'ceo': return 'Chief Executive';
             default: return role;
         }
     };
@@ -55,7 +64,9 @@ const Sidebar = () => {
                 </button>
                 <div className="mobile-topbar-brand">
                     <img src="/grda-logo.png" className="mobile-topbar-logo" alt="GRDA" />
-                    <span className="mobile-topbar-title">GRDA Stores</span>
+                    <span className="mobile-topbar-title">
+                        {isCorrespondenceExperience ? 'GRDA Correspondence' : 'GRDA Stores'}
+                    </span>
                 </div>
                 <div className="mobile-topbar-avatar">
                     {userProfile?.name ? userProfile.name.charAt(0).toUpperCase() : '?'}
@@ -71,7 +82,13 @@ const Sidebar = () => {
                     <div style={{ flex: 1 }}>
                         <h1 className="logo-title">GRDA Inventory System</h1>
                         <p className="logo-subtitle">
-                            {isRecordsUser ? 'Records Management' : 'Inventory System'}
+                            {isExecutiveCorrespondence
+                                ? 'Executive correspondence'
+                                : isDepartmentUser
+                                  ? 'Department routing (HOD)'
+                                  : isRecordsUser
+                                    ? 'Records Management'
+                                    : 'Inventory System'}
                         </p>
                     </div>
                     <button className="sidebar-close-btn" onClick={() => setIsOpen(false)} aria-label="Close menu">
@@ -80,12 +97,43 @@ const Sidebar = () => {
                 </div>
 
                 <nav className="sidebar-nav">
-                    {isAuditUser ? (
+                    {needsAccountRole ? (
+                        <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
+                            <UserCog size={20} />
+                            <span>Account &amp; access</span>
+                        </NavLink>
+                    ) : isAuditUser ? (
                         /* Audit Unit */
                         <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
                             <BarChart3 size={20} />
                             <span>Audit Summary</span>
                         </NavLink>
+                    ) : isExecutiveCorrespondence ? (
+                        <>
+                            <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
+                                <FileText size={20} />
+                                <span>Correspondence Inbox</span>
+                            </NavLink>
+                            <NavLink to="/correspondence/archive" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <Archive size={20} />
+                                <span>Correspondence archive</span>
+                            </NavLink>
+                            <NavLink to="/correspondence/raise-memo" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <PenLine size={20} />
+                                <span>Raise memo</span>
+                            </NavLink>
+                        </>
+                    ) : isDepartmentUser ? (
+                        <>
+                            <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
+                                <Inbox size={20} />
+                                <span>Department inbox</span>
+                            </NavLink>
+                            <NavLink to="/correspondence/raise-memo" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <PenLine size={20} />
+                                <span>Raise memo</span>
+                            </NavLink>
+                        </>
                     ) : isRecordsUser ? (
                         /* Records Unit */
                         <>
@@ -96,6 +144,10 @@ const Sidebar = () => {
                             <NavLink to="/records/upload" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                 <Upload size={20} />
                                 <span>Upload Letter</span>
+                            </NavLink>
+                            <NavLink to="/correspondence/raise-memo" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                <PenLine size={20} />
+                                <span>Raise memo</span>
                             </NavLink>
                         </>
                     ) : (
@@ -133,6 +185,10 @@ const Sidebar = () => {
                                     <NavLink to="/records" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                         <FileText size={20} />
                                         <span>Records Module</span>
+                                    </NavLink>
+                                    <NavLink to="/correspondence/archive" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                                        <Archive size={20} />
+                                        <span>Correspondence archive</span>
                                     </NavLink>
                                     <NavLink to="/activity-log" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                         <ClipboardList size={20} />

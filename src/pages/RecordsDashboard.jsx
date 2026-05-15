@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, MailOpen, Send, Clock, Search, Filter, Plus, FileText, Eye } from 'lucide-react';
-import { useRecords, LETTER_CLASSIFICATIONS } from '../context/RecordsContext';
+import { Mail, MailOpen, Send, Clock, Search, Plus, FileText, Eye } from 'lucide-react';
+import { useRecords, LETTER_CLASSIFICATIONS, WORKFLOW_STEPS, WORKFLOW_STEP_LABELS, CORRESPONDENCE_TYPES } from '../context/RecordsContext';
+import { correspondenceTypeLabel } from '../constants/departmentWorkflow';
 import { format } from 'date-fns';
 import './Records.css';
 
@@ -12,6 +13,8 @@ const RecordsDashboard = () => {
     const [filterType, setFilterType] = useState(''); // '' | 'incoming' | 'outgoing'
     const [filterClass, setFilterClass] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
+    const [filterWorkflow, setFilterWorkflow] = useState('');
+    const [filterCorrespondence, setFilterCorrespondence] = useState('');
 
     // KPIs
     const today = new Date().toDateString();
@@ -31,9 +34,13 @@ const RecordsDashboard = () => {
             const matchType = !filterType || letter.type === filterType;
             const matchClass = !filterClass || letter.classification === filterClass;
             const matchStatus = !filterStatus || letter.status === filterStatus;
-            return matchSearch && matchType && matchClass && matchStatus;
+            const step = letter.workflowStep || WORKFLOW_STEPS.WITH_RECORDS;
+            const matchWorkflow = !filterWorkflow || step === filterWorkflow;
+            const matchCorr =
+                !filterCorrespondence || (letter.correspondenceType || 'letter_outside_company') === filterCorrespondence;
+            return matchSearch && matchType && matchClass && matchStatus && matchWorkflow && matchCorr;
         });
-    }, [letters, searchQuery, filterType, filterClass, filterStatus]);
+    }, [letters, searchQuery, filterType, filterClass, filterStatus, filterWorkflow, filterCorrespondence]);
 
     const getStatusBadge = (status) => {
         const map = {
@@ -49,6 +56,19 @@ const RecordsDashboard = () => {
     const getTypeBadge = (type) => {
         if (type === 'incoming') return <span className="badge badge-success"><MailOpen size={12} /> Incoming</span>;
         return <span className="badge badge-warning"><Send size={12} /> Outgoing</span>;
+    };
+
+    const getWorkflowBadge = (letter) => {
+        const step = letter.workflowStep || WORKFLOW_STEPS.WITH_RECORDS;
+        const label = WORKFLOW_STEP_LABELS[step] || step;
+        const map = {
+            [WORKFLOW_STEPS.WITH_RECORDS]: 'badge-neutral',
+            [WORKFLOW_STEPS.WITH_CEO_OFFICE]: 'badge-primary',
+            [WORKFLOW_STEPS.WITH_CEO]: 'badge-warning',
+            [WORKFLOW_STEPS.WITH_DEPARTMENT]: 'badge-info',
+            [WORKFLOW_STEPS.ROUTED]: 'badge-success',
+        };
+        return <span className={`badge ${map[step] || 'badge-neutral'}`}>{label}</span>;
     };
 
     if (dataLoading) {
@@ -142,6 +162,20 @@ const RecordsDashboard = () => {
                         <option value="Filed">Filed</option>
                         <option value="Responded">Responded</option>
                     </select>
+                    <select className="form-control records-filter-select" value={filterCorrespondence} onChange={(e) => setFilterCorrespondence(e.target.value)}>
+                        <option value="">All register categories</option>
+                        {CORRESPONDENCE_TYPES.map((t) => (
+                            <option key={t.id} value={t.id}>{t.label}</option>
+                        ))}
+                    </select>
+                    <select className="form-control records-filter-select" value={filterWorkflow} onChange={(e) => setFilterWorkflow(e.target.value)}>
+                        <option value="">All routing stages</option>
+                        <option value={WORKFLOW_STEPS.WITH_RECORDS}>{WORKFLOW_STEP_LABELS[WORKFLOW_STEPS.WITH_RECORDS]}</option>
+                        <option value={WORKFLOW_STEPS.WITH_CEO_OFFICE}>{WORKFLOW_STEP_LABELS[WORKFLOW_STEPS.WITH_CEO_OFFICE]}</option>
+                        <option value={WORKFLOW_STEPS.WITH_DEPARTMENT}>{WORKFLOW_STEP_LABELS[WORKFLOW_STEPS.WITH_DEPARTMENT]}</option>
+                        <option value={WORKFLOW_STEPS.WITH_CEO}>{WORKFLOW_STEP_LABELS[WORKFLOW_STEPS.WITH_CEO]}</option>
+                        <option value={WORKFLOW_STEPS.ROUTED}>{WORKFLOW_STEP_LABELS[WORKFLOW_STEPS.ROUTED]}</option>
+                    </select>
                 </div>
 
                 {/* Letters Table */}
@@ -154,7 +188,9 @@ const RecordsDashboard = () => {
                                 <th>Subject</th>
                                 <th className="hide-mobile">From / To</th>
                                 <th className="hide-mobile">Ref. No.</th>
+                                <th className="hide-mobile">Register category</th>
                                 <th>Category</th>
+                                <th className="hide-mobile">Routing</th>
                                 <th>Status</th>
                                 <th></th>
                             </tr>
@@ -162,7 +198,7 @@ const RecordsDashboard = () => {
                         <tbody>
                             {filteredLetters.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="text-center py-8 text-muted">
+                                    <td colSpan="10" className="text-center py-8 text-muted">
                                         {letters.length === 0 ? 'No letters recorded yet. Click "New Letter" to upload one.' : 'No letters match your filters.'}
                                     </td>
                                 </tr>
@@ -174,7 +210,9 @@ const RecordsDashboard = () => {
                                         <td className="font-medium letter-subject">{letter.subject}</td>
                                         <td className="hide-mobile text-muted">{letter.type === 'incoming' ? letter.sender : letter.recipient}</td>
                                         <td className="hide-mobile font-mono text-sm">{letter.referenceNo || '—'}</td>
+                                        <td className="hide-mobile text-sm">{correspondenceTypeLabel(letter.correspondenceType)}</td>
                                         <td><span className="badge badge-neutral">{letter.classification}</span></td>
+                                        <td className="hide-mobile">{getWorkflowBadge(letter)}</td>
                                         <td>{getStatusBadge(letter.status)}</td>
                                         <td>
                                             <button className="btn-icon" title="View"

@@ -1,12 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail } from 'firebase/auth';
-import { auth, adminAuth } from '../firebase';
-import { getDocument, setDocument, updateDocument, deleteDocument } from '../utils/firestoreRest';
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword, updatePassword, sendPasswordResetEmail, deleteUser as deleteAuthUser } from 'firebase/auth';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { auth, adminAuth, db } from '../firebase';
 import { logActivity, ACTIONS } from '../utils/auditLog';
+import { normalizeUserRoleFromFirestore, pickRoleField } from '../utils/userRole';
+import { buildUserProfileForFirestore, firebaseAuthErrorMessage } from '../utils/userProfile';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
+
+/** Load `users/{uid}` via Firestore SDK (same auth channel as rules evaluation; avoids REST 403 issues). */
+async function fetchUserProfileFromFirestore(uid) {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists) return null;
+    return { id: snap.id, ...snap.data() };
+}
 
 const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
 const FORCE_LOGOUT_CHECK_MS = 30 * 1000; // Check every 30 seconds
@@ -51,12 +60,10 @@ export const AuthProvider = ({ children }) => {
 
         const checkForceLogout = async () => {
             try {
-                const idToken = await user.getIdToken();
-                const profile = await getDocument(`users/${user.uid}`, idToken);
-                if (profile?.forceLogout === true) {
+                const snap = await getDoc(doc(db, 'users', user.uid));
+                if (snap.exists && snap.data()?.forceLogout === true) {
                     console.warn('[Auth] Force logout triggered by admin');
-                    // Clear the flag first
-                    await updateDocument(`users/${user.uid}`, { forceLogout: false }, idToken);
+                    await updateDoc(doc(db, 'users', user.uid), { forceLogout: false });
                     await signOut(auth);
                 }
             } catch (err) {
@@ -77,11 +84,11 @@ export const AuthProvider = ({ children }) => {
             if (firebaseUser) {
                 let profile = null;
                 try {
-                    const idToken = await firebaseUser.getIdToken();
-                    const profileData = await getDocument(`users/${firebaseUser.uid}`, idToken);
+                    const profileData = await fetchUserProfileFromFirestore(firebaseUser.uid);
 
                     if (profileData) {
-                        profile = profileData;
+                        const normalizedRole = normalizeUserRoleFromFirestore(pickRoleField(profileData));
+                        profile = { ...profileData, role: normalizedRole };
 
                         if (profile.isActive === false) {
                             console.warn('[Auth] Account is deactivated:', firebaseUser.uid);
@@ -93,12 +100,22 @@ export const AuthProvider = ({ children }) => {
                         }
 
                         // Track session — write lastLogin timestamp
-                        await updateDocument(`users/${firebaseUser.uid}`, {
+                        await updateDoc(doc(db, 'users', firebaseUser.uid), {
                             lastLogin: new Date().toISOString(),
                             isOnline: true,
-                        }, idToken);
+                        });
 
-                        console.log('[Auth] User profile loaded:', profile.email, 'Role:', profile.role);
+                        console.log('[Auth] User profile loaded:', profile.email, 'Role:', profile.role, 'Firestore role field:', profileData.role);
+
+                        // Keep Firestore role canonical so security rules recognize admins.
+                        if (normalizedRole === 'admin' && profileData.role !== 'admin') {
+                            try {
+                                await updateDoc(doc(db, 'users', firebaseUser.uid), { role: 'admin' });
+                                profile.role = 'admin';
+                            } catch (roleFixErr) {
+                                console.warn('[Auth] Could not normalize admin role in Firestore:', roleFixErr);
+                            }
+                        }
                     } else {
                         console.warn('[Auth] No user profile found for UID:', firebaseUser.uid);
                         profile = {
@@ -151,8 +168,8 @@ export const AuthProvider = ({ children }) => {
         // Mark offline and log logout
         if (user) {
             try {
+                await updateDoc(doc(db, 'users', user.uid), { isOnline: false });
                 const idToken = await user.getIdToken();
-                await updateDocument(`users/${user.uid}`, { isOnline: false }, idToken);
                 await logActivity({
                     action: ACTIONS.USER_LOGOUT,
                     details: `User logged out: ${userProfile?.email || 'unknown'}`,
@@ -167,50 +184,117 @@ export const AuthProvider = ({ children }) => {
 
     const updateProfile = useCallback(async (updates) => {
         if (!user) throw new Error('Not authenticated');
-        const idToken = await user.getIdToken();
-        await setDocument(`users/${user.uid}`, { ...userProfile, ...updates }, idToken);
-        setUserProfile(prev => ({ ...prev, ...updates }));
+        await setDoc(doc(db, 'users', user.uid), { ...userProfile, ...updates }, { merge: true });
+        setUserProfile(prev => {
+            const merged = { ...prev, ...updates };
+            if (updates.role !== undefined) {
+                merged.role = normalizeUserRoleFromFirestore(updates.role);
+            }
+            return merged;
+        });
     }, [user, userProfile]);
 
     const adminCreateUser = useCallback(async (email, password, role, position, name) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
 
-        const userCredential = await createUserWithEmailAndPassword(adminAuth, email, password);
-        const newUid = userCredential.user.uid;
-
-        const newUserProfile = {
-            email,
+        const normalizedEmail = email.trim().toLowerCase();
+        const newUserProfile = buildUserProfileForFirestore({
+            email: normalizedEmail,
             role,
-            position: position || '',
-            name: name || '',
-            isActive: true,
-            mustChangePassword: true,
-            isOnline: false,
-            createdAt: new Date().toISOString()
-        };
+            position,
+            name,
+            createdByUid: user.uid,
+        });
+
+        let createdAuthUser = null;
+        try {
+            const userCredential = await createUserWithEmailAndPassword(adminAuth, normalizedEmail, password);
+            createdAuthUser = userCredential.user;
+            // Sign out secondary app before writing profile so Firestore uses the admin session.
+            await signOut(adminAuth);
+            await user.getIdToken(true);
+            await setDoc(doc(db, 'users', createdAuthUser.uid), newUserProfile);
+        } catch (err) {
+            if (createdAuthUser) {
+                try {
+                    await deleteAuthUser(createdAuthUser);
+                } catch (cleanupErr) {
+                    console.error('[Auth] Could not roll back Auth user after profile write failure:', cleanupErr);
+                }
+            }
+            try {
+                await signOut(adminAuth);
+            } catch (_) { /* ignore */ }
+            const message = firebaseAuthErrorMessage(err);
+            throw new Error(message);
+        }
+
+        try {
+            await signOut(adminAuth);
+        } catch (_) { /* ignore */ }
 
         const idToken = await user.getIdToken();
-        await setDocument(`users/${newUid}`, newUserProfile, idToken);
-        await signOut(adminAuth);
+        try {
+            await logActivity({
+                action: ACTIONS.USER_CREATED,
+                details: `Created user: ${normalizedEmail} (${newUserProfile.role})`,
+                userId: user.uid,
+                userName: userProfile?.name || userProfile?.email,
+                targetId: createdAuthUser.uid,
+                targetType: 'user',
+            }, idToken);
+        } catch (_) {
+            /* audit_log is best-effort */
+        }
 
-        // Audit log
-        await logActivity({
-            action: ACTIONS.USER_CREATED,
-            details: `Created user: ${email} (${role})`,
-            userId: user.uid,
-            userName: userProfile?.name || userProfile?.email,
-            targetId: newUid,
-            targetType: 'user',
-        }, idToken);
+        return { uid: createdAuthUser.uid, ...newUserProfile };
+    }, [user, userProfile]);
 
-        return { uid: newUid, ...newUserProfile };
+    const adminUpdateUser = useCallback(async (uid, updates) => {
+        if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
+        if (!uid) throw new Error('Missing user id');
+
+        const snap = await getDoc(doc(db, 'users', uid));
+        const existing = snap.exists() ? snap.data() : {};
+
+        const merged = buildUserProfileForFirestore({
+            email: updates.email ?? existing.email,
+            role: updates.role ?? existing.role,
+            position: updates.position ?? existing.position,
+            name: updates.name ?? existing.name,
+            createdByUid: existing.createdBy || user.uid,
+            existing,
+        });
+
+        if (updates.mustChangePassword !== undefined) {
+            merged.mustChangePassword = updates.mustChangePassword;
+        }
+        if (updates.isActive !== undefined) {
+            merged.isActive = updates.isActive;
+        }
+
+        await setDoc(doc(db, 'users', uid), merged, { merge: true });
+
+        const idToken = await user.getIdToken();
+        try {
+            await logActivity({
+                action: ACTIONS.USER_ROLE_CHANGED,
+                details: `Updated account for ${merged.email} (role: ${merged.role})`,
+                userId: user.uid,
+                userName: userProfile?.name || userProfile?.email,
+                targetId: uid,
+                targetType: 'user',
+            }, idToken);
+        } catch (_) { /* best-effort */ }
+
+        return { uid, ...merged };
     }, [user, userProfile]);
 
     const updateUserRole = useCallback(async (uid, newRole) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
-        const idToken = await user.getIdToken();
-        await updateDocument(`users/${uid}`, { role: newRole }, idToken);
+        await updateDoc(doc(db, 'users', uid), { role: newRole });
 
+        const idToken = await user.getIdToken();
         await logActivity({
             action: ACTIONS.USER_ROLE_CHANGED,
             details: `Changed role to "${newRole}" for user ${uid}`,
@@ -225,7 +309,7 @@ export const AuthProvider = ({ children }) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
         const idToken = await user.getIdToken();
         const newStatus = !currentIsActive;
-        await updateDocument(`users/${uid}`, { isActive: newStatus }, idToken);
+        await updateDoc(doc(db, 'users', uid), { isActive: newStatus });
 
         await logActivity({
             action: ACTIONS.USER_STATUS_CHANGED,
@@ -240,7 +324,7 @@ export const AuthProvider = ({ children }) => {
     const deleteUser = useCallback(async (uid) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
         const idToken = await user.getIdToken();
-        await deleteDocument(`users/${uid}`, idToken);
+        await deleteDoc(doc(db, 'users', uid));
 
         await logActivity({
             action: ACTIONS.USER_DELETED,
@@ -256,7 +340,7 @@ export const AuthProvider = ({ children }) => {
         if (!user) throw new Error('Not authenticated');
         await updatePassword(user, newPassword);
         const idToken = await user.getIdToken(true);
-        await updateDocument(`users/${user.uid}`, { mustChangePassword: false }, idToken);
+        await updateDoc(doc(db, 'users', user.uid), { mustChangePassword: false });
         setUserProfile(prev => ({ ...prev, mustChangePassword: false }));
 
         await logActivity({
@@ -284,7 +368,7 @@ export const AuthProvider = ({ children }) => {
     const forceUserLogout = useCallback(async (uid) => {
         if (userProfile?.role !== 'admin') throw new Error('Unauthorized');
         const idToken = await user.getIdToken();
-        await updateDocument(`users/${uid}`, { forceLogout: true }, idToken);
+        await updateDoc(doc(db, 'users', uid), { forceLogout: true });
 
         await logActivity({
             action: ACTIONS.USER_FORCE_LOGOUT,
@@ -298,6 +382,7 @@ export const AuthProvider = ({ children }) => {
 
     const needsProfileSetup = userProfile
         && userProfile.role !== 'audit_unit'
+        && userProfile.role !== 'none'
         && (!userProfile.name || !userProfile.position);
 
     const mustChangePassword = userProfile?.mustChangePassword === true;
@@ -314,6 +399,7 @@ export const AuthProvider = ({ children }) => {
         updateProfile,
         changePassword,
         adminCreateUser,
+        adminUpdateUser,
         updateUserRole,
         toggleUserStatus,
         deleteUser,
